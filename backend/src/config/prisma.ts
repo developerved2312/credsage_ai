@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { Logger } from '../utils/logger';
 
 const logger = new Logger('PrismaClient');
 
-// Prisma 7 enhanced configuration
+// Prisma 7 enhanced configuration with custom middleware
 const prismaClientSingleton = () => {
-  return new PrismaClient({
+  const client = new PrismaClient({
     log: [
       {
         emit: 'event',
@@ -25,7 +25,48 @@ const prismaClientSingleton = () => {
       },
     ],
     errorFormat: 'pretty',
+    // Prisma 7: Connection pool configuration
+    datasourceUrl: process.env.DATABASE_URL,
   });
+
+  // Prisma 7 event listeners with enhanced logging
+  client.$on('query', (e: Prisma.QueryEvent) => {
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`Query: ${e.query}`);
+      logger.debug(`Params: ${e.params}`);
+      logger.debug(`Duration: ${e.duration}ms`);
+      
+      // Log slow queries (> 1000ms)
+      if (e.duration > 1000) {
+        logger.warn(`Slow query detected (${e.duration}ms): ${e.query}`);
+      }
+    }
+  });
+
+  client.$on('error', (e: Prisma.LogEvent) => {
+    logger.error(`Prisma Error: ${e.message}`);
+  });
+
+  client.$on('info', (e: Prisma.LogEvent) => {
+    logger.info(`Prisma Info: ${e.message}`);
+  });
+
+  client.$on('warn', (e: Prisma.LogEvent) => {
+    logger.warn(`Prisma Warning: ${e.message}`);
+  });
+
+  // Prisma 7: Query performance monitoring middleware
+  client.$use(async (params, next) => {
+    const before = Date.now();
+    const result = await next(params);
+    const after = Date.now();
+    
+    logger.debug(`${params.model}.${params.action} took ${after - before}ms`);
+    
+    return result;
+  });
+
+  return client;
 };
 
 declare global {
@@ -35,34 +76,48 @@ declare global {
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-// Prisma 7 event listeners
-prisma.$on('query', (e) => {
-  if (process.env.NODE_ENV === 'development') {
-    logger.debug(`Query: ${e.query}`);
-    logger.debug(`Duration: ${e.duration}ms`);
-  }
-});
-
-prisma.$on('error', (e) => {
-  logger.error(`Prisma Error: ${e.message}`);
-});
-
-prisma.$on('info', (e) => {
-  logger.info(`Prisma Info: ${e.message}`);
-});
-
-prisma.$on('warn', (e) => {
-  logger.warn(`Prisma Warning: ${e.message}`);
-});
-
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prismaGlobal = prisma;
 }
 
-// Graceful shutdown
+// Prisma 7: Enhanced connection management
+export const connectDatabase = async () => {
+  try {
+    await prisma.$connect();
+    logger.info('✅ Database connected successfully (Prisma 7)');
+    
+    // Test query to verify connection
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info('✅ Database query test successful');
+  } catch (error) {
+    logger.error('❌ Database connection failed:', error);
+    throw error;
+  }
+};
+
+export const disconnectDatabase = async () => {
+  try {
+    await prisma.$disconnect();
+    logger.info('Database disconnected successfully');
+  } catch (error) {
+    logger.error('Error disconnecting database:', error);
+    throw error;
+  }
+};
+
+// Graceful shutdown handlers
 process.on('beforeExit', async () => {
-  logger.info('Disconnecting Prisma Client...');
-  await prisma.$disconnect();
+  await disconnectDatabase();
+});
+
+process.on('SIGINT', async () => {
+  await disconnectDatabase();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await disconnectDatabase();
+  process.exit(0);
 });
 
 export { prisma };

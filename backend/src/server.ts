@@ -1,16 +1,15 @@
 import { createApp } from './app';
 import { env } from './config/env';
-import { prisma } from './config/prisma';
+import { connectDatabase, disconnectDatabase } from './config/prisma';
 import { Logger } from './utils/logger';
 
 const logger = new Logger('Server');
 
 async function startServer() {
   try {
-    // Test database connection
-    logger.info('Testing database connection...');
-    await prisma.$connect();
-    logger.info('✅ Database connected successfully');
+    // Test database connection with Prisma 7
+    logger.info('Testing database connection with Prisma 7...');
+    await connectDatabase();
 
     // Create Express app
     const app = createApp();
@@ -31,8 +30,7 @@ async function startServer() {
         logger.info('HTTP server closed');
         
         try {
-          await prisma.$disconnect();
-          logger.info('Database connection closed');
+          await disconnectDatabase();
           process.exit(0);
         } catch (error) {
           logger.error('Error during shutdown:', error);

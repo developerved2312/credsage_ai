@@ -1,7 +1,7 @@
 {
   "name": "credsage-ai",
-  "version": "1.0.0",
-  "description": "AI-powered credit scoring and investment recommendation platform",
+  "version": "1.0.2",
+  "description": "AI-powered credit scoring and investment recommendation platform, currently in development",
   "private": true,
   "workspaces": [
     "backend",
