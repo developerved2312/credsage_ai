@@ -1,0 +1,225 @@
+// Prisma 7 Schema for CredSage AI
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["typedSql", "relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255)
+  firstName String?  @db.VarChar(100)
+  lastName  String?  @db.VarChar(100)
+  phone     String?  @db.VarChar(20)
+  dateOfBirth DateTime? @db.Date
+  address   String?  @db.VarChar(255)
+  city      String?  @db.VarChar(100)
+  state     String?  @db.VarChar(50)
+  zipCode   String?  @db.VarChar(10)
+  country   String   @default("USA") @db.VarChar(50)
+  
+  // Profile
+  employmentStatus String? @db.VarChar(50)
+  annualIncome     Decimal? @db.Decimal(12, 2)
+  occupation       String? @db.VarChar(100)
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  lastLoginAt DateTime? @db.Timestamptz
+  
+  // Relations
+  creditScores    CreditScore[]
+  investments     Investment[]
+  portfolios      Portfolio[]
+  chatMessages    ChatMessage[]
+  chatConversations ChatConversation[]
+  
+  @@index([email])
+  @@map("users")
+}
+
+model CreditScore {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Credit Score Details
+  score           Int      @db.Integer
+  scoreCategory   String   @db.VarChar(50) // Excellent, Good, Fair, Poor
+  
+  // Input Features
+  age             Int?     @db.Integer
+  income          Decimal? @db.Decimal(12, 2)
+  employmentLength Int?    @db.Integer
+  loanAmount      Decimal? @db.Decimal(12, 2)
+  loanTerm        Int?     @db.Integer
+  homeOwnership   String?  @db.VarChar(50)
+  loanPurpose     String?  @db.VarChar(100)
+  debtToIncome    Decimal? @db.Decimal(5, 4)
+  creditHistory   Int?     @db.Integer
+  numCreditLines  Int?     @db.Integer
+  numOpenAccounts Int?     @db.Integer
+  totalDebt       Decimal? @db.Decimal(12, 2)
+  
+  // ML Model Details
+  modelVersion    String   @db.VarChar(50)
+  confidence      Decimal? @db.Decimal(5, 4)
+  
+  // SHAP Explanations - Using Prisma 7 JSON support
+  shapValues      Json?    @db.JsonB
+  topFactors      Json?    @db.JsonB
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([score])
+  @@map("credit_scores")
+}
+
+model Investment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolioId String?  @db.Uuid
+  portfolio   Portfolio? @relation(fields: [portfolioId], references: [id], onDelete: SetNull)
+  
+  // Investment Details
+  symbol      String   @db.VarChar(20) // Stock/ETF symbol
+  name        String   @db.VarChar(255)
+  type        String   @db.VarChar(50) // stock, etf, bond, crypto
+  quantity    Decimal  @db.Decimal(18, 8)
+  purchasePrice Decimal @db.Decimal(18, 4)
+  currentPrice  Decimal? @db.Decimal(18, 4)
+  
+  // Calculated Fields
+  totalValue    Decimal? @db.Decimal(18, 4)
+  profitLoss    Decimal? @db.Decimal(18, 4)
+  profitLossPercent Decimal? @db.Decimal(8, 4)
+  
+  // Recommendation Details
+  recommendationScore Decimal? @db.Decimal(5, 4)
+  riskLevel          String?  @db.VarChar(50) // low, medium, high
+  recommendedBy      String?  @db.VarChar(50) // ml_model, user_choice
+  
+  // Timestamps
+  purchaseDate DateTime @default(now()) @db.Timestamptz
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt    DateTime @updatedAt @db.Timestamptz
+  
+  @@index([userId])
+  @@index([portfolioId])
+  @@index([symbol])
+  @@index([type])
+  @@map("investments")
+}
+
+model Portfolio {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Portfolio Details
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  totalValue  Decimal  @default(0) @db.Decimal(18, 4)
+  cashBalance Decimal  @default(0) @db.Decimal(18, 4)
+  
+  // Risk Profile
+  riskTolerance String  @default("medium") @db.VarChar(50) // low, medium, high
+  investmentHorizon String? @db.VarChar(50) // short, medium, long
+  
+  // Performance Metrics
+  totalReturn Decimal? @db.Decimal(18, 4)
+  totalReturnPercent Decimal? @db.Decimal(8, 4)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  investments Investment[]
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("portfolios")
+}
+
+model ChatConversation {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Conversation Details
+  title       String   @default("New Conversation") @db.VarChar(255)
+  context     String?  @db.VarChar(50) // credit, investment, general
+  
+  // Relations
+  messages    ChatMessage[]
+  
+  // Timestamps
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+  lastMessageAt DateTime? @db.Timestamptz
+  
+  @@index([userId])
+  @@index([updatedAt(sort: Desc)])
+  @@map("chat_conversations")
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid()) @db.Uuid
+  conversationId  String   @db.Uuid
+  conversation    ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Message Details
+  role            String   @db.VarChar(20) // user, assistant, system
+  content         String   @db.Text
+  
+  // Metadata
+  tokens          Int?     @db.Integer
+  model           String?  @db.VarChar(50) // gemini-pro, gpt-4, etc.
+  
+  // Context - Using Prisma 7 optional relations
+  relatedCreditScoreId String? @db.Uuid
+  relatedInvestmentId  String? @db.Uuid
+  
+  // Timestamps
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  
+  @@index([conversationId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("chat_messages")
+}
+
+model SystemLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  level       String   @db.VarChar(20) // info, warn, error
+  service     String   @db.VarChar(50) // api, ml-service, llm-service
+  message     String   @db.Text
+  metadata    Json?    @db.JsonB
+  
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  
+  @@index([level])
+  @@index([service])
+  @@index([createdAt(sort: Desc)])
+  @@map("system_logs")
+}

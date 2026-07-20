@@ -1,0 +1,33 @@
+{
+  "name": "credsage-ai",
+  "version": "1.0.0",
+  "description": "AI-powered credit scoring and investment recommendation platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "ml-service"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\" \"npm run dev -w ml-service\"",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "dev:ml": "npm run dev -w ml-service",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "prisma:generate": "npm run prisma:generate -w backend",
+    "prisma:migrate": "npm run prisma:migrate -w backend",
+    "prisma:studio": "npm run prisma:studio -w backend"
+  },
+  "keywords": [
+    "credit-scoring",
+    "investment",
+    "ai",
+    "machine-learning",
+    "fintech"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
