@@ -163,13 +163,13 @@ npm run prisma:studio
 
 ## Features
 
-- ✅ Credit score prediction using ML models
-- ✅ Explainable AI with SHAP values
-- ✅ Personalized investment recommendations
-- ✅ AI-powered financial chatbot
-- ✅ User authentication & authorization
-- ✅ Real-time credit monitoring
-- ✅ Portfolio tracking
+- Credit score prediction using ML models
+- Explainable AI with SHAP values
+- Personalized investment recommendations
+- AI-powered financial chatbot
+- User authentication & authorization
+- Real-time credit monitoring
+- Portfolio tracking
 
 ## Contributing
 
@@ -178,7 +178,3 @@ npm run prisma:studio
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
