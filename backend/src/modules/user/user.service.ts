@@ -1,138 +1,38 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma';
-import { env } from '../../config/env';
 import { AppError } from '../../middleware/error.middleware';
 import { Logger } from '../../utils/logger';
-import { JwtPayload } from '../../middleware/auth.middleware';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 
 const logger = new Logger('UserService');
 
-export interface RegisterUserInput {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-}
+// Zod validation schemas for service inputs
+export const UpdateProfileSchema = z.object({
+  firstName: z.string().min(1, 'First name cannot be empty').optional(),
+  lastName: z.string().min(1, 'Last name cannot be empty').optional(),
+  name: z.string().min(1, 'Name cannot be empty').optional(),
+  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format').optional(),
+  dateOfBirth: z.date().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  country: z.string().optional(),
+  employmentStatus: z.enum(['employed', 'self-employed', 'unemployed', 'student', 'retired']).optional(),
+  annualIncome: z.number().positive('Annual income must be positive').optional(),
+  occupation: z.string().optional(),
+});
 
-export interface LoginUserInput {
-  email: string;
-  password: string;
-}
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
 
-export interface UpdateProfileInput {
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  dateOfBirth?: Date;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-  country?: string;
-  employmentStatus?: string;
-  annualIncome?: number;
-  occupation?: string;
-}
-
+/**
+ * User Service - Business logic for user operations
+ * Follows separation of concerns principle
+ */
 export class UserService {
-  async register(input: RegisterUserInput) {
-    logger.info(`Registering user: ${input.email}`);
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
-
-    if (existingUser) {
-      throw new AppError(400, 'User with this email already exists');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(input.password, 10);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        password: hashedPassword,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        phone: input.phone,
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        createdAt: true,
-      },
-    });
-
-    // Generate JWT token
-    const token = this.generateToken({
-      userId: user.id,
-      email: user.email,
-    });
-
-    logger.info(`User registered successfully: ${user.email}`);
-
-    return {
-      user,
-      token,
-    };
-  }
-
-  async login(input: LoginUserInput) {
-    logger.info(`Login attempt for: ${input.email}`);
-
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
-
-    if (!user) {
-      throw new AppError(401, 'Invalid email or password');
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(input.password, user.password);
-
-    if (!isPasswordValid) {
-      throw new AppError(401, 'Invalid email or password');
-    }
-
-    // Update last login
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    // Generate JWT token
-    const token = this.generateToken({
-      userId: user.id,
-      email: user.email,
-    });
-
-    logger.info(`User logged in successfully: ${user.email}`);
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone,
-        createdAt: user.createdAt,
-        lastLoginAt: user.lastLoginAt,
-      },
-      token,
-    };
-  }
-
+  /**
+   * Get user profile by ID
+   */
   async getProfile(userId: string) {
     logger.info(`Fetching profile for user: ${userId}`);
 
@@ -141,6 +41,9 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        name: true,
+        emailVerified: true,
+        image: true,
         firstName: true,
         lastName: true,
         phone: true,
@@ -155,7 +58,6 @@ export class UserService {
         occupation: true,
         createdAt: true,
         updatedAt: true,
-        lastLoginAt: true,
       },
     });
 
@@ -166,15 +68,36 @@ export class UserService {
     return user;
   }
 
+  /**
+   * Update user profile with validation
+   */
   async updateProfile(userId: string, input: UpdateProfileInput) {
     logger.info(`Updating profile for user: ${userId}`);
 
-    // Convert annualIncome to Prisma Decimal if provided
+    // Validate input with Zod
+    const validatedInput = UpdateProfileSchema.parse(input);
+
+    // Update name field if firstName or lastName is provided
+    const name = validatedInput.firstName && validatedInput.lastName 
+      ? `${validatedInput.firstName} ${validatedInput.lastName}`
+      : validatedInput.name;
+
     const data: Prisma.UserUpdateInput = {
-      ...input,
-      annualIncome: input.annualIncome 
-        ? new Prisma.Decimal(input.annualIncome) 
+      name,
+      firstName: validatedInput.firstName,
+      lastName: validatedInput.lastName,
+      phone: validatedInput.phone,
+      dateOfBirth: validatedInput.dateOfBirth,
+      address: validatedInput.address,
+      city: validatedInput.city,
+      state: validatedInput.state,
+      zipCode: validatedInput.zipCode,
+      country: validatedInput.country,
+      employmentStatus: validatedInput.employmentStatus,
+      annualIncome: validatedInput.annualIncome 
+        ? new Prisma.Decimal(validatedInput.annualIncome) 
         : undefined,
+      occupation: validatedInput.occupation,
     };
 
     const user = await prisma.user.update({
@@ -183,6 +106,7 @@ export class UserService {
       select: {
         id: true,
         email: true,
+        name: true,
         firstName: true,
         lastName: true,
         phone: true,
@@ -204,39 +128,9 @@ export class UserService {
     return user;
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
-    logger.info(`Changing password for user: ${userId}`);
-
-    // Get user with password
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new AppError(404, 'User not found');
-    }
-
-    // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-
-    if (!isPasswordValid) {
-      throw new AppError(401, 'Current password is incorrect');
-    }
-
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Update password
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    logger.info(`Password changed successfully for user: ${userId}`);
-
-    return { message: 'Password changed successfully' };
-  }
-
+  /**
+   * Delete user account
+   */
   async deleteAccount(userId: string) {
     logger.info(`Deleting account for user: ${userId}`);
 
@@ -249,12 +143,9 @@ export class UserService {
     return { message: 'Account deleted successfully' };
   }
 
-  private generateToken(payload: JwtPayload): string {
-    return jwt.sign(payload, env.JWT_SECRET, {
-      expiresIn: env.JWT_EXPIRES_IN,
-    });
-  }
-
+  /**
+   * Get user statistics
+   */
   async getUserStats(userId: string) {
     logger.info(`Fetching stats for user: ${userId}`);
 
@@ -271,5 +162,35 @@ export class UserService {
       portfolios: portfolioCount,
       chatMessages: messageCount,
     };
+  }
+
+  /**
+   * Get user by email
+   */
+  async getUserByEmail(email: string) {
+    logger.info(`Fetching user by email: ${email}`);
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    return user;
+  }
+
+  /**
+   * Get user by ID
+   */
+  async getUserById(userId: string) {
+    logger.info(`Fetching user by ID: ${userId}`);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'User not found');
+    }
+
+    return user;
   }
 }

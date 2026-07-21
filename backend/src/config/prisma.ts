@@ -1,11 +1,22 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import { Logger } from '../utils/logger';
 
 const logger = new Logger('PrismaClient');
 
-// Prisma 7 enhanced configuration with custom middleware
+// Prisma 7 enhanced configuration with driver adapter
 const prismaClientSingleton = () => {
+  // Create PostgreSQL connection pool
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+  
+  // Create Prisma adapter
+  const adapter = new PrismaPg(pool);
+  
   const client = new PrismaClient({
+    adapter,
     log: [
       {
         emit: 'event',
@@ -25,8 +36,6 @@ const prismaClientSingleton = () => {
       },
     ],
     errorFormat: 'pretty',
-    // Prisma 7: Connection pool configuration
-    datasourceUrl: process.env.DATABASE_URL,
   });
 
   // Prisma 7 event listeners with enhanced logging
@@ -53,17 +62,6 @@ const prismaClientSingleton = () => {
 
   client.$on('warn', (e: Prisma.LogEvent) => {
     logger.warn(`Prisma Warning: ${e.message}`);
-  });
-
-  // Prisma 7: Query performance monitoring middleware
-  client.$use(async (params, next) => {
-    const before = Date.now();
-    const result = await next(params);
-    const after = Date.now();
-    
-    logger.debug(`${params.model}.${params.action} took ${after - before}ms`);
-    
-    return result;
   });
 
   return client;

@@ -2,23 +2,27 @@ import axios, { AxiosInstance } from 'axios';
 import { env } from '../config/env';
 import { Logger } from '../utils/logger';
 import { AppError } from '../middleware/error.middleware';
+import { z } from 'zod';
 
 const logger = new Logger('MLService');
 
-export interface CreditScoreInput {
-  age: number;
-  income: number;
-  employmentLength: number;
-  loanAmount: number;
-  loanTerm: number;
-  homeOwnership: string;
-  loanPurpose: string;
-  debtToIncome: number;
-  creditHistory: number;
-  numCreditLines: number;
-  numOpenAccounts: number;
-  totalDebt: number;
-}
+// Zod validation schema for ML service input
+const MLCreditScoreInputSchema = z.object({
+  age: z.number(),
+  income: z.number(),
+  employmentLength: z.number(),
+  loanAmount: z.number(),
+  loanTerm: z.number(),
+  homeOwnership: z.string(),
+  loanPurpose: z.string(),
+  debtToIncome: z.number(),
+  creditHistory: z.number(),
+  numCreditLines: z.number(),
+  numOpenAccounts: z.number(),
+  totalDebt: z.number(),
+});
+
+export type CreditScoreInput = z.infer<typeof MLCreditScoreInputSchema>;
 
 export interface CreditScorePrediction {
   score: number;
@@ -83,10 +87,13 @@ export class MLService {
   async predictCreditScore(input: CreditScoreInput): Promise<CreditScorePrediction> {
     logger.info('Requesting credit score prediction from ML service');
 
+    // Validate input with Zod
+    const validatedInput = MLCreditScoreInputSchema.parse(input);
+
     try {
       const response = await this.client.post<CreditScorePrediction>(
         '/api/v1/credit/predict',
-        input
+        validatedInput
       );
 
       logger.info(`Credit score prediction received: ${response.data.score}`);

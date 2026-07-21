@@ -9,7 +9,7 @@ const creditService = new CreditService();
 
 export class CreditController {
   calculateScore = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     logger.info(`Calculate credit score endpoint called for user: ${userId}`);
 
     const creditScore = await creditService.calculateCreditScore(userId, req.body);
@@ -18,7 +18,7 @@ export class CreditController {
   });
 
   getHistory = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { limit, offset } = req.query as { limit?: number; offset?: number };
     
     logger.info(`Get credit history endpoint called for user: ${userId}`);
@@ -33,7 +33,7 @@ export class CreditController {
   });
 
   getById = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     
     logger.info(`Get credit score by ID endpoint called: ${id}`);
@@ -44,7 +44,7 @@ export class CreditController {
   });
 
   getLatest = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     logger.info(`Get latest credit score endpoint called for user: ${userId}`);
 
@@ -54,7 +54,7 @@ export class CreditController {
   });
 
   getFactors = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     
     logger.info(`Get credit factors endpoint called for score: ${id}`);
@@ -65,7 +65,7 @@ export class CreditController {
   });
 
   deleteScore = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     
     logger.info(`Delete credit score endpoint called: ${id}`);
@@ -76,7 +76,7 @@ export class CreditController {
   });
 
   getStats = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     logger.info(`Get credit score stats endpoint called for user: ${userId}`);
 

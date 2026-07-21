@@ -1,78 +1,115 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { auth } from '../lib/auth';
 import { ResponseUtil } from '../utils/response';
-import { AppError } from './error.middleware';
 import { Logger } from '../utils/logger';
 
 const logger = new Logger('AuthMiddleware');
 
-export interface JwtPayload {
-  userId: string;
-  email: string;
-}
-
+// Extend Express Request to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: {
+        id: string;
+        email: string;
+        name?: string;
+        emailVerified: boolean;
+      };
+      session?: {
+        id: string;
+        userId: string;
+        expiresAt: Date;
+      };
     }
   }
 }
 
+/**
+ * Middleware to authenticate requests using Better Auth
+ */
 export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    // Get session from Better Auth
+    const session = await auth.api.getSession({
+      headers: req.headers as any,
+    });
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return ResponseUtil.unauthorized(res, 'No token provided') as any;
+    if (!session) {
+      return ResponseUtil.unauthorized(res, 'Authentication required') as any;
     }
 
-    const token = authHeader.substring(7);
-    const jwtSecret = process.env.JWT_SECRET;
+    // Attach user and session to request
+    req.user = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name ?? undefined,
+      emailVerified: session.user.emailVerified,
+    };
 
-    if (!jwtSecret) {
-      logger.error('JWT_SECRET not configured');
-      throw new AppError(500, 'Authentication configuration error');
-    }
+    req.session = {
+      id: session.session.id,
+      userId: session.session.userId,
+      expiresAt: new Date(session.session.expiresAt),
+    };
 
-    const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
-    req.user = decoded;
+    logger.debug(`Authenticated user: ${req.user.email}`);
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return ResponseUtil.unauthorized(res, 'Invalid token') as any;
-    }
-    if (error instanceof jwt.TokenExpiredError) {
-      return ResponseUtil.unauthorized(res, 'Token expired') as any;
-    }
-    next(error);
+    logger.error('Authentication error:', error);
+    return ResponseUtil.unauthorized(res, 'Invalid or expired session') as any;
   }
 };
 
+/**
+ * Optional authentication - doesn't fail if no session
+ */
 export const optionalAuth = async (
   req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    const session = await auth.api.getSession({
+      headers: req.headers as any,
+    });
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const jwtSecret = process.env.JWT_SECRET;
+    if (session) {
+      req.user = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name ?? undefined,
+        emailVerified: session.user.emailVerified,
+      };
 
-      if (jwtSecret) {
-        const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
-        req.user = decoded;
-      }
+      req.session = {
+        id: session.session.id,
+        userId: session.session.userId,
+        expiresAt: new Date(session.session.expiresAt),
+      };
     }
-    next();
   } catch (error) {
-    // For optional auth, we just continue without setting user
-    next();
+    logger.debug('Optional auth: No valid session');
   }
+  next();
+};
+
+/**
+ * Middleware to require email verification
+ */
+export const requireEmailVerification = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user?.emailVerified) {
+    return ResponseUtil.forbidden(
+      res,
+      'Email verification required. Please verify your email address.'
+    ) as any;
+  }
+  next();
 };

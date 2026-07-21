@@ -1,11 +1,52 @@
 import { prisma } from '../../config/prisma';
-import { MLService, CreditScoreInput } from '../../services/ml.service';
+import { MLService } from '../../services/ml.service';
 import { AppError } from '../../middleware/error.middleware';
 import { Logger } from '../../utils/logger';
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 
 const logger = new Logger('CreditService');
 
+// Zod validation schema for credit score input
+export const CreditScoreInputSchema = z.object({
+  age: z.number().int().min(18, 'Age must be at least 18').max(100, 'Age must be less than 100'),
+  income: z.number().positive('Income must be positive'),
+  employmentLength: z.number().int().min(0, 'Employment length cannot be negative'),
+  loanAmount: z.number().positive('Loan amount must be positive'),
+  loanTerm: z.number().int().positive('Loan term must be positive'),
+  homeOwnership: z.enum(['RENT', 'OWN', 'MORTGAGE', 'OTHER'], {
+    errorMap: () => ({ message: 'Invalid home ownership status' }),
+  }),
+  loanPurpose: z.enum([
+    'debt_consolidation',
+    'credit_card',
+    'home_improvement',
+    'major_purchase',
+    'small_business',
+    'car',
+    'medical',
+    'moving',
+    'vacation',
+    'house',
+    'wedding',
+    'renewable_energy',
+    'other',
+  ], {
+    errorMap: () => ({ message: 'Invalid loan purpose' }),
+  }),
+  debtToIncome: z.number().min(0).max(1, 'Debt-to-income ratio must be between 0 and 1'),
+  creditHistory: z.number().int().min(0, 'Credit history cannot be negative'),
+  numCreditLines: z.number().int().min(0, 'Number of credit lines cannot be negative'),
+  numOpenAccounts: z.number().int().min(0, 'Number of open accounts cannot be negative'),
+  totalDebt: z.number().min(0, 'Total debt cannot be negative'),
+});
+
+export type CreditScoreInput = z.infer<typeof CreditScoreInputSchema>;
+
+/**
+ * Credit Service - Business logic for credit score operations
+ * Uses MLService (third-party service) for predictions
+ */
 export class CreditService {
   private mlService: MLService;
 
@@ -16,8 +57,11 @@ export class CreditService {
   async calculateCreditScore(userId: string, input: CreditScoreInput) {
     logger.info(`Calculating credit score for user: ${userId}`);
 
+    // Validate input with Zod
+    const validatedInput = CreditScoreInputSchema.parse(input);
+
     // Call ML service for prediction
-    const prediction = await this.mlService.predictCreditScore(input);
+    const prediction = await this.mlService.predictCreditScore(validatedInput);
 
     // Save credit score to database with Prisma 7 Decimal
     const creditScore = await prisma.creditScore.create({
@@ -25,18 +69,18 @@ export class CreditService {
         userId,
         score: prediction.score,
         scoreCategory: prediction.scoreCategory,
-        age: input.age,
-        income: new Prisma.Decimal(input.income),
-        employmentLength: input.employmentLength,
-        loanAmount: new Prisma.Decimal(input.loanAmount),
-        loanTerm: input.loanTerm,
-        homeOwnership: input.homeOwnership,
-        loanPurpose: input.loanPurpose,
-        debtToIncome: new Prisma.Decimal(input.debtToIncome),
-        creditHistory: input.creditHistory,
-        numCreditLines: input.numCreditLines,
-        numOpenAccounts: input.numOpenAccounts,
-        totalDebt: new Prisma.Decimal(input.totalDebt),
+        age: validatedInput.age,
+        income: new Prisma.Decimal(validatedInput.income),
+        employmentLength: validatedInput.employmentLength,
+        loanAmount: new Prisma.Decimal(validatedInput.loanAmount),
+        loanTerm: validatedInput.loanTerm,
+        homeOwnership: validatedInput.homeOwnership,
+        loanPurpose: validatedInput.loanPurpose,
+        debtToIncome: new Prisma.Decimal(validatedInput.debtToIncome),
+        creditHistory: validatedInput.creditHistory,
+        numCreditLines: validatedInput.numCreditLines,
+        numOpenAccounts: validatedInput.numOpenAccounts,
+        totalDebt: new Prisma.Decimal(validatedInput.totalDebt),
         modelVersion: prediction.modelVersion,
         confidence: new Prisma.Decimal(prediction.confidence),
         shapValues: prediction.shapValues as Prisma.InputJsonValue,

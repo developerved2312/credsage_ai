@@ -1,67 +1,87 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from '@store/authStore';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSession } from './lib/auth';
+import Login from './pages/Login';
+import SignUp from './pages/SignUp';
+import Dashboard from './pages/Dashboard';
+import { Loader2 } from 'lucide-react';
 
-// Layouts
-import MainLayout from '@components/layouts/MainLayout';
-import AuthLayout from '@components/layouts/AuthLayout';
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: session, isPending } = useSession();
 
-// Pages
-import LoginPage from '@pages/auth/LoginPage';
-import RegisterPage from '@pages/auth/RegisterPage';
-import DashboardPage from '@pages/DashboardPage';
-import CreditScorePage from '@pages/credit/CreditScorePage';
-import CreditHistoryPage from '@pages/credit/CreditHistoryPage';
-import PortfoliosPage from '@pages/investment/PortfoliosPage';
-import PortfolioDetailPage from '@pages/investment/PortfolioDetailPage';
-import RecommendationsPage from '@pages/investment/RecommendationsPage';
-import ChatbotPage from '@pages/chatbot/ChatbotPage';
-import ProfilePage from '@pages/profile/ProfilePage';
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
-}
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
 
-function App() {
+  return <>{children}</>;
+};
+
+// Public Route Component (redirect to dashboard if already logged in)
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: session, isPending } = useSession();
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (session) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const App: React.FC = () => {
   return (
-    <Routes>
-      {/* Auth Routes */}
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-      </Route>
+    <Router>
+      <Routes>
+        {/* Public Routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <SignUp />
+            </PublicRoute>
+          }
+        />
 
-      {/* Protected Routes */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        
-        {/* Credit Routes */}
-        <Route path="/credit/score" element={<CreditScorePage />} />
-        <Route path="/credit/history" element={<CreditHistoryPage />} />
-        
-        {/* Investment Routes */}
-        <Route path="/investments/portfolios" element={<PortfoliosPage />} />
-        <Route path="/investments/portfolios/:id" element={<PortfolioDetailPage />} />
-        <Route path="/investments/recommendations" element={<RecommendationsPage />} />
-        
-        {/* Chatbot Route */}
-        <Route path="/chat" element={<ChatbotPage />} />
-        
-        {/* Profile Route */}
-        <Route path="/profile" element={<ProfilePage />} />
-      </Route>
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Default Route */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;

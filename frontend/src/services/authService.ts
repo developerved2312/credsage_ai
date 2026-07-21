@@ -1,23 +1,40 @@
+import { signIn, signUp, signOut } from '@lib/auth.client';
 import api from '@utils/api';
-import type { ApiResponse, AuthResponse, User } from '@types/index';
+import type { ApiResponse, User } from '@types/index';
 
 export const authService = {
-  // Register new user
+  // Sign up with email and password
   register: async (data: {
     email: string;
     password: string;
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-  }): Promise<AuthResponse> => {
-    const response = await api.post<ApiResponse<AuthResponse>>('/users/register', data);
-    return response.data.data!;
+    name?: string;
+  }) => {
+    return signUp.email({
+      email: data.email,
+      password: data.password,
+      name: data.name,
+    });
   },
 
-  // Login user
-  login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
-    const response = await api.post<ApiResponse<AuthResponse>>('/users/login', data);
-    return response.data.data!;
+  // Sign in with email and password
+  login: async (data: { email: string; password: string }) => {
+    return signIn.email({
+      email: data.email,
+      password: data.password,
+    });
+  },
+
+  // Sign in with Google
+  loginWithGoogle: async () => {
+    return signIn.social({
+      provider: 'google',
+      callbackURL: '/dashboard',
+    });
+  },
+
+  // Sign out
+  logout: async () => {
+    return signOut();
   },
 
   // Get user profile
@@ -29,15 +46,6 @@ export const authService = {
   // Update user profile
   updateProfile: async (data: Partial<User>): Promise<User> => {
     const response = await api.put<ApiResponse<User>>('/users/profile', data);
-    return response.data.data!;
-  },
-
-  // Change password
-  changePassword: async (data: {
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<{ message: string }> => {
-    const response = await api.post<ApiResponse>('/users/change-password', data);
     return response.data.data!;
   },
 

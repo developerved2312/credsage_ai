@@ -43,8 +43,9 @@ export default defineConfig({
   // Datasource configuration (can override schema.prisma)
   datasources: {
     db: {
-      // Support for connection pooling with Prisma Accelerate
-      // Uses DIRECT_URL for migrations and DATABASE_URL for queries
+      // Prisma 7: Connection URLs go here, not in schema.prisma
+      url: process.env.DATABASE_URL,
+      directUrl: process.env.DIRECT_URL,
     },
   },
 });

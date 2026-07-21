@@ -2,6 +2,9 @@
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  emailVerified: boolean;
+  image?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -18,9 +21,10 @@ export interface User {
   updatedAt: string;
 }
 
-export interface AuthResponse {
-  user: User;
-  token: string;
+export interface Session {
+  id: string;
+  userId: string;
+  expiresAt: Date;
 }
 
 // Credit Score Types

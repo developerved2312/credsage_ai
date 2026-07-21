@@ -1,15 +1,19 @@
 import { Logger } from '../utils/logger';
+import { z } from 'zod';
 
 const logger = new Logger('RecommendationService');
 
-export interface RecommendationInput {
-  userId: string;
-  riskTolerance: string;
-  investmentAmount: number;
-  horizon: string;
-  currentPortfolios: any[];
-  creditScore?: number;
-}
+// Zod validation schema for recommendation input
+const RecommendationInputSchema = z.object({
+  userId: z.string().uuid(),
+  riskTolerance: z.enum(['low', 'medium', 'high']),
+  investmentAmount: z.number().positive(),
+  horizon: z.enum(['short', 'medium', 'long']),
+  currentPortfolios: z.array(z.any()),
+  creditScore: z.number().int().min(300).max(850).optional(),
+});
+
+export type RecommendationInput = z.infer<typeof RecommendationInputSchema>;
 
 export interface InvestmentRecommendation {
   symbol: string;
@@ -29,14 +33,17 @@ export class RecommendationService {
   ): Promise<InvestmentRecommendation[]> {
     logger.info(`Generating investment recommendations for user: ${input.userId}`);
 
+    // Validate input with Zod
+    const validatedInput = RecommendationInputSchema.parse(input);
+
     // This is a simplified recommendation engine
     // In production, this would call an ML model or sophisticated algorithm
     const recommendations: InvestmentRecommendation[] = [];
 
-    const riskProfile = this.getRiskProfile(input.riskTolerance, input.creditScore);
+    const riskProfile = this.getRiskProfile(validatedInput.riskTolerance, validatedInput.creditScore);
 
     // Build recommendations based on risk tolerance
-    if (input.riskTolerance === 'low') {
+    if (validatedInput.riskTolerance === 'low') {
       recommendations.push(
         {
           symbol: 'BND',

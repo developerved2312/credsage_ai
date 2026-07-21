@@ -1,24 +1,23 @@
-// Prisma 7 Schema for CredSage AI
-// Learn more: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
   previewFeatures = ["typedSql", "relationJoins", "fullTextSearch", "views"]
   engineType = "library"
   binaryTargets = ["native", "darwin-arm64", "linux-musl"]
-  output = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
+// Better Auth User Model
 model User {
   id        String   @id @default(uuid()) @db.Uuid
+  name      String?  @db.VarChar(255)
   email     String   @unique @db.VarChar(255)
-  password  String   @db.VarChar(255)
+  emailVerified Boolean @default(false)
+  image     String?  @db.Text
+  
+  // Profile fields
   firstName String?  @db.VarChar(100)
   lastName  String?  @db.VarChar(100)
   phone     String?  @db.VarChar(20)
@@ -29,7 +28,7 @@ model User {
   zipCode   String?  @db.VarChar(10)
   country   String   @default("USA") @db.VarChar(50)
   
-  // Profile
+  // Financial Profile
   employmentStatus String? @db.VarChar(50)
   annualIncome     Decimal? @db.Decimal(12, 2)
   occupation       String? @db.VarChar(100)
@@ -37,17 +36,74 @@ model User {
   // Timestamps
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
-  lastLoginAt DateTime? @db.Timestamptz
   
-  // Relations
-  creditScores    CreditScore[]
-  investments     Investment[]
-  portfolios      Portfolio[]
-  chatMessages    ChatMessage[]
+  // Better Auth Relations
+  sessions  Session[]
+  accounts  Account[]
+  
+  // App Relations
+  creditScores      CreditScore[]
+  investments       Investment[]
+  portfolios        Portfolio[]
+  chatMessages      ChatMessage[]
   chatConversations ChatConversation[]
   
   @@index([email])
-  @@map("users")
+  @@map("user")
+}
+
+// Better Auth Session Model
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  expiresAt DateTime @db.Timestamptz
+  token     String   @unique @db.VarChar(255)
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  
+  @@index([userId])
+  @@index([token])
+  @@map("session")
+}
+
+// Better Auth Account Model (for OAuth)
+model Account {
+  id                String   @id @default(uuid()) @db.Uuid
+  accountId         String   @db.VarChar(255)
+  providerId        String   @db.VarChar(50)
+  userId            String   @db.Uuid
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  idToken           String?  @db.Text
+  accessTokenExpiresAt DateTime? @db.Timestamptz
+  refreshTokenExpiresAt DateTime? @db.Timestamptz
+  scope             String?  @db.Text
+  password          String?  @db.VarChar(255)
+  
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+// Better Auth Verification Model
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String   @db.VarChar(255)
+  value      String   @db.VarChar(255)
+  expiresAt  DateTime @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+  
+  @@unique([identifier, value])
+  @@map("verification")
 }
 
 model CreditScore {
@@ -199,7 +255,6 @@ model ChatMessage {
   tokens          Int?     @db.Integer
   model           String?  @db.VarChar(50) // gemini-pro, gpt-4, etc.
   
-  // Context - Using Prisma 7 optional relations
   relatedCreditScoreId String? @db.Uuid
   relatedInvestmentId  String? @db.Uuid
   

@@ -1,12 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from '@types/index';
+
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+  emailVerified: boolean;
+  image?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface Session {
+  id: string;
+  userId: string;
+  expiresAt: Date;
+}
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  session: Session | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, session: Session) => void;
   clearAuth: () => void;
   updateUser: (user: Partial<User>) => void;
 }
@@ -15,20 +30,20 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      token: null,
+      session: null,
       isAuthenticated: false,
       
-      setAuth: (user, token) =>
+      setAuth: (user, session) =>
         set({
           user,
-          token,
+          session,
           isAuthenticated: true,
         }),
       
       clearAuth: () =>
         set({
           user: null,
-          token: null,
+          session: null,
           isAuthenticated: false,
         }),
       
