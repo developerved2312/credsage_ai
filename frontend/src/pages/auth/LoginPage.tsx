@@ -25,7 +25,7 @@ export default function LoginPage() {
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-        {loginError && (
+        {Boolean(loginError) && (
           <div className="rounded-md bg-red-50 p-4">
             <p className="text-sm text-red-800">
               {String((loginError as any)?.message) || 'Invalid email or password'}

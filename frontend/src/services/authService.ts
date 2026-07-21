@@ -7,20 +7,13 @@ export const authService = {
   register: async (data: {
     email: string;
     password: string;
-    name?: string;
+    name: string;
   }) => {
-    const params: {
-      email: string;
-      password: string;
-      name?: string | undefined;
-    } = {
+    return signUp.email({
       email: data.email,
       password: data.password,
-    };
-    if (data.name) {
-      params.name = data.name;
-    }
-    return signUp.email(params);
+      name: data.name,
+    });
   },
 
   // Sign in with email and password

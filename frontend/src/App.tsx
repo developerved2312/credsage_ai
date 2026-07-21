@@ -1,12 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from './lib/auth';
-import Login from './pages/auth/LoginPage';
-import SignUp from './pages/auth/SignUpPage';
-import Dashboard from './pages/dashboard/DashboardPage';
+import Login from './pages/Login';
+import SignUp from './pages/SignUp';
+import Dashboard from './pages/Dashboard';
 import Demo from './demo';
 import { Loader2 } from 'lucide-react';
-import AuthSectionOne from './components/ui/auth-section-1';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
