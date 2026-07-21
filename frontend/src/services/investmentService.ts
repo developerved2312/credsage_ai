@@ -4,7 +4,7 @@ import type {
   Portfolio,
   Investment,
   InvestmentRecommendation,
-} from '@types/index';
+} from '@appTypes/index';
 
 export const investmentService = {
   // Portfolio methods

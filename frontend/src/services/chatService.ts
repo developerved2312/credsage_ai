@@ -5,7 +5,7 @@ import type {
   ChatMessage,
   SendMessageRequest,
   PaginatedResponse,
-} from '@types/index';
+} from '@appTypes/index';
 
 export const chatService = {
   // Send message

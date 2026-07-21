@@ -24,12 +24,13 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@lib/*": ["./src/lib/*"],
       "@components/*": ["./src/components/*"],
       "@pages/*": ["./src/pages/*"],
       "@services/*": ["./src/services/*"],
       "@hooks/*": ["./src/hooks/*"],
       "@store/*": ["./src/store/*"],
-      "@types/*": ["./src/types/*"],
+      "@appTypes/*": ["./src/types/*"],
       "@utils/*": ["./src/utils/*"]
     }
   },

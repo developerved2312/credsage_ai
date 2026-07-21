@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession } from '@lib/auth.client';
 import { authService } from '@services/authService';
 import { useAuthStore } from '@store/authStore';
-import type { User } from '@types/index';
+import type { User } from '@appTypes/index';
 
 export const useAuth = () => {
   const navigate = useNavigate();

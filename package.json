@@ -29,5 +29,8 @@
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "@paper-design/shaders-react": "^0.0.77"
   }
 }

@@ -1,5 +1,5 @@
 import api from '@utils/api';
-import type { ApiResponse, CreditScore, CreditScoreInput, PaginatedResponse } from '@types/index';
+import type { ApiResponse, CreditScore, CreditScoreInput, PaginatedResponse } from '@appTypes/index';
 
 export const creditService = {
   // Calculate credit score

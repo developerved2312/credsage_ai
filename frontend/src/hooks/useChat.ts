@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { chatService } from '@services/chatService';
-import type { SendMessageRequest } from '@types/index';
+import type { SendMessageRequest } from '@appTypes/index';
 
 export const useChat = (conversationId?: string) => {
   const queryClient = useQueryClient();

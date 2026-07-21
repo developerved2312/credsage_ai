@@ -8,6 +8,7 @@ import { env } from './config/env';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 import { Logger } from './utils/logger';
 import { auth } from './lib/auth';
+import { toNodeHandler } from 'better-auth/node';
 
 // Import routes
 import creditRoutes from './modules/credit/credit.routes';
@@ -36,6 +37,9 @@ export function createApp(): Application {
       exposedHeaders: ['Set-Cookie'],
     })
   );
+
+  // Better Auth routes - Must come before body parsing middleware
+  app.all('/api/auth/*', toNodeHandler(auth));
 
   // Rate limiting
   const limiter = rateLimit({
@@ -68,16 +72,7 @@ export function createApp(): Application {
     });
   });
 
-  // Better Auth routes - Must come before other API routes
-  app.all('/api/auth/*', async (req, res) => {
-    // Better Auth needs the full URL
-    const url = new URL(req.originalUrl || req.url, `${req.protocol}://${req.get('host')}`);
-    return auth.handler(url.toString(), {
-      method: req.method,
-      headers: req.headers,
-      body: req.body,
-    }, res);
-  });
+
 
   // API routes
   app.use('/api/users', userRoutes);

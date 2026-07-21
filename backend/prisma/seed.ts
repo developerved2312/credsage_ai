@@ -1,20 +1,15 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import 'dotenv/config';
+import { prisma } from '../src/config/prisma';
+import { Prisma } from '@prisma/client';
 
 async function main() {
   console.log('🌱 Starting database seeding with Prisma 7...');
 
-  // Create demo user
-  const hashedPassword = await bcrypt.hash('demo123', 10);
-  
   const demoUser = await prisma.user.upsert({
     where: { email: 'demo@credsage.ai' },
     update: {},
     create: {
       email: 'demo@credsage.ai',
-      password: hashedPassword,
       firstName: 'Demo',
       lastName: 'User',
       phone: '+1234567890',

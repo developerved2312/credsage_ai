@@ -1,6 +1,6 @@
 import { signIn, signUp, signOut } from '@lib/auth.client';
 import api from '@utils/api';
-import type { ApiResponse, User } from '@types/index';
+import type { ApiResponse, User } from '@appTypes/index';
 
 export const authService = {
   // Sign up with email and password
@@ -9,11 +9,18 @@ export const authService = {
     password: string;
     name?: string;
   }) => {
-    return signUp.email({
+    const params: {
+      email: string;
+      password: string;
+      name?: string | undefined;
+    } = {
       email: data.email,
       password: data.password,
-      name: data.name,
-    });
+    };
+    if (data.name) {
+      params.name = data.name;
+    }
+    return signUp.email(params);
   },
 
   // Sign in with email and password

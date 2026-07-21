@@ -1,4 +1,5 @@
-import { defineConfig } from '@prisma/client/generator-build';
+import { defineConfig } from 'prisma/config';
+import 'dotenv/config';
 
 /**
  * Prisma 7 Configuration File
@@ -40,12 +41,8 @@ export default defineConfig({
     ],
   },
   
-  // Datasource configuration (can override schema.prisma)
-  datasources: {
-    db: {
-      // Prisma 7: Connection URLs go here, not in schema.prisma
-      url: process.env.DATABASE_URL,
-      directUrl: process.env.DIRECT_URL,
-    },
+  // Datasource configuration
+  datasource: {
+    url: process.env.DATABASE_URL,
   },
 });

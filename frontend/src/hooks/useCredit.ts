@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { creditService } from '@services/creditService';
-import type { CreditScoreInput } from '@types/index';
+import type { CreditScoreInput } from '@appTypes/index';
 
 export const useCredit = () => {
   const queryClient = useQueryClient();

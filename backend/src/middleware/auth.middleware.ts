@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { auth } from '../lib/auth';
 import { ResponseUtil } from '../utils/response';
 import { Logger } from '../utils/logger';
+import { fromNodeHeaders } from 'better-auth/node';
 
 const logger = new Logger('AuthMiddleware');
 
@@ -35,7 +36,7 @@ export const authenticate = async (
   try {
     // Get session from Better Auth
     const session = await auth.api.getSession({
-      headers: req.headers as any,
+      headers: fromNodeHeaders(req.headers),
     });
 
     if (!session) {
@@ -74,7 +75,7 @@ export const optionalAuth = async (
 ): Promise<void> => {
   try {
     const session = await auth.api.getSession({
-      headers: req.headers as any,
+      headers: fromNodeHeaders(req.headers),
     });
 
     if (session) {
