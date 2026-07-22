@@ -2,36 +2,9 @@ import { z } from 'zod';
 
 export const calculateCreditScoreSchema = z.object({
   body: z.object({
-    age: z.number().int().min(18, 'Age must be at least 18').max(100, 'Age must be less than 100'),
-    income: z.number().positive('Income must be positive'),
-    employmentLength: z.number().int().min(0, 'Employment length cannot be negative'),
-    loanAmount: z.number().positive('Loan amount must be positive'),
-    loanTerm: z.number().int().positive('Loan term must be positive'),
-    homeOwnership: z.enum(['RENT', 'OWN', 'MORTGAGE', 'OTHER'], {
-      errorMap: () => ({ message: 'Invalid home ownership status' }),
-    }),
-    loanPurpose: z.enum([
-      'debt_consolidation',
-      'credit_card',
-      'home_improvement',
-      'major_purchase',
-      'small_business',
-      'car',
-      'medical',
-      'moving',
-      'vacation',
-      'house',
-      'wedding',
-      'renewable_energy',
-      'other',
-    ], {
-      errorMap: () => ({ message: 'Invalid loan purpose' }),
-    }),
-    debtToIncome: z.number().min(0).max(1, 'Debt-to-income ratio must be between 0 and 1'),
-    creditHistory: z.number().int().min(0, 'Credit history cannot be negative'),
-    numCreditLines: z.number().int().min(0, 'Number of credit lines cannot be negative'),
-    numOpenAccounts: z.number().int().min(0, 'Number of open accounts cannot be negative'),
-    totalDebt: z.number().min(0, 'Total debt cannot be negative'),
+    recharge_freq_per_month: z.number().min(0), avg_recharge_value: z.number().min(0), recharge_gap_std: z.number().min(0),
+    bill_on_time_ratio: z.number().min(0).max(1), avg_days_late: z.number().min(0), autopay_enrolled: z.boolean(),
+    monthly_spend_volatility: z.number().min(0), emi_usage_rate: z.number().min(0).max(1), order_freq_trend: z.number(), phone_tenure_months: z.number().int().min(0),
   }),
 });
 

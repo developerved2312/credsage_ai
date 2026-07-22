@@ -44,18 +44,16 @@ export interface CreditScore {
 }
 
 export interface CreditScoreInput {
-  age: number;
-  income: number;
-  employmentLength: number;
-  loanAmount: number;
-  loanTerm: number;
-  homeOwnership: string;
-  loanPurpose: string;
-  debtToIncome: number;
-  creditHistory: number;
-  numCreditLines: number;
-  numOpenAccounts: number;
-  totalDebt: number;
+  recharge_freq_per_month: number;
+  avg_recharge_value: number;
+  recharge_gap_std: number;
+  bill_on_time_ratio: number;
+  avg_days_late: number;
+  autopay_enrolled: boolean;
+  monthly_spend_volatility: number;
+  emi_usage_rate: number;
+  order_freq_trend: number;
+  phone_tenure_months: number;
 }
 
 // Investment Types

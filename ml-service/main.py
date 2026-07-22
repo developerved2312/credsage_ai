@@ -39,34 +39,30 @@ credit_scorer = CreditScorer()
 
 # Request/Response Models
 class CreditScoreRequest(BaseModel):
-    age: int = Field(..., ge=18, le=100, description="Age of the applicant")
-    income: float = Field(..., gt=0, description="Annual income")
-    employmentLength: int = Field(..., ge=0, description="Years of employment")
-    loanAmount: float = Field(..., gt=0, description="Requested loan amount")
-    loanTerm: int = Field(..., gt=0, description="Loan term in months")
-    homeOwnership: str = Field(..., description="Home ownership status")
-    loanPurpose: str = Field(..., description="Purpose of the loan")
-    debtToIncome: float = Field(..., ge=0, le=1, description="Debt-to-income ratio")
-    creditHistory: int = Field(..., ge=0, description="Years of credit history")
-    numCreditLines: int = Field(..., ge=0, description="Number of credit lines")
-    numOpenAccounts: int = Field(..., ge=0, description="Number of open accounts")
-    totalDebt: float = Field(..., ge=0, description="Total debt amount")
+    recharge_freq_per_month: float = Field(..., ge=0, description="Average recharges per month")
+    avg_recharge_value: float = Field(..., ge=0, description="Average recharge value")
+    recharge_gap_std: float = Field(..., ge=0, description="Recharge-gap standard deviation")
+    bill_on_time_ratio: float = Field(..., ge=0, le=1, description="Ratio of bills paid on time")
+    avg_days_late: float = Field(..., ge=0, description="Average days a bill is late")
+    autopay_enrolled: bool = Field(..., description="Whether autopay is enrolled")
+    monthly_spend_volatility: float = Field(..., ge=0, description="Monthly spend volatility")
+    emi_usage_rate: float = Field(..., ge=0, le=1, description="EMI usage rate")
+    order_freq_trend: float = Field(..., description="Order-frequency trend")
+    phone_tenure_months: int = Field(..., ge=0, description="Phone tenure in months")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "age": 32,
-                "income": 75000,
-                "employmentLength": 5,
-                "loanAmount": 25000,
-                "loanTerm": 36,
-                "homeOwnership": "RENT",
-                "loanPurpose": "debt_consolidation",
-                "debtToIncome": 0.35,
-                "creditHistory": 8,
-                "numCreditLines": 5,
-                "numOpenAccounts": 3,
-                "totalDebt": 15000
+                "recharge_freq_per_month": 4,
+                "avg_recharge_value": 399,
+                "recharge_gap_std": 2.5,
+                "bill_on_time_ratio": 0.95,
+                "avg_days_late": 1,
+                "autopay_enrolled": True,
+                "monthly_spend_volatility": 0.18,
+                "emi_usage_rate": 0.25,
+                "order_freq_trend": 0.12,
+                "phone_tenure_months": 36
             }
         }
 

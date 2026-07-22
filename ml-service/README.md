@@ -57,18 +57,16 @@ POST /api/v1/credit/predict
 Content-Type: application/json
 
 {
-  "age": 32,
-  "income": 75000,
-  "employmentLength": 5,
-  "loanAmount": 25000,
-  "loanTerm": 36,
-  "homeOwnership": "RENT",
-  "loanPurpose": "debt_consolidation",
-  "debtToIncome": 0.35,
-  "creditHistory": 8,
-  "numCreditLines": 5,
-  "numOpenAccounts": 3,
-  "totalDebt": 15000
+  "recharge_freq_per_month": 4,
+  "avg_recharge_value": 399,
+  "recharge_gap_std": 2.5,
+  "bill_on_time_ratio": 0.95,
+  "avg_days_late": 1,
+  "autopay_enrolled": true,
+  "monthly_spend_volatility": 0.18,
+  "emi_usage_rate": 0.25,
+  "order_freq_trend": 0.12,
+  "phone_tenure_months": 36
 }
 ```
 
@@ -79,9 +77,9 @@ Response:
   "scoreCategory": "Good",
   "confidence": 0.92,
   "shapValues": {
-    "income": 0.15,
-    "creditHistory": 0.12,
-    "debtToIncome": -0.08
+    "bill_on_time_ratio": 0.15,
+    "phone_tenure_months": 0.12,
+    "avg_days_late": -0.08
   },
   "topFactors": [
     {

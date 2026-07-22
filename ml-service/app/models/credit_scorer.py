@@ -18,24 +18,25 @@ class CreditScorer:
     def __init__(self):
         self.model_loaded = False
         self.feature_names = [
-            'age', 'income', 'employmentLength', 'loanAmount', 'loanTerm',
-            'homeOwnership', 'loanPurpose', 'debtToIncome', 'creditHistory',
-            'numCreditLines', 'numOpenAccounts', 'totalDebt'
+            'recharge_freq_per_month', 'avg_recharge_value', 'recharge_gap_std',
+            'bill_on_time_ratio', 'avg_days_late', 'autopay_enrolled',
+            'monthly_spend_volatility', 'emi_usage_rate', 'order_freq_trend',
+            'phone_tenure_months'
         ]
-        self.categorical_features = ['homeOwnership', 'loanPurpose']
+        self.categorical_features = ['autopay_enrolled']
         
         # Feature weights for rule-based scoring
         self.feature_weights = {
-            'income': 0.20,
-            'debtToIncome': -0.25,
-            'creditHistory': 0.18,
-            'employmentLength': 0.12,
-            'numCreditLines': 0.10,
-            'numOpenAccounts': 0.08,
-            'loanAmount': -0.05,
-            'totalDebt': -0.15,
-            'age': 0.05,
-            'loanTerm': -0.02
+            'recharge_freq_per_month': 0.10,
+            'avg_recharge_value': 0.12,
+            'recharge_gap_std': -0.08,
+            'bill_on_time_ratio': 0.25,
+            'avg_days_late': -0.18,
+            'autopay_enrolled': 0.08,
+            'monthly_spend_volatility': -0.08,
+            'emi_usage_rate': -0.10,
+            'order_freq_trend': 0.05,
+            'phone_tenure_months': 0.10,
         }
         
         logger.info("CreditScorer initialized (mock mode)")
@@ -103,21 +104,15 @@ class CreditScorer:
         # Start with average score
         score = 650.0
         
-        # Income factor (normalize to 0-1 range, assuming max 500k)
-        income_factor = min(features['income'] / 500000, 1.0)
-        score += income_factor * 100
-        
-        # Debt-to-income factor (lower is better)
-        dti_factor = 1 - features['debtToIncome']
-        score += dti_factor * 80
-        
-        # Credit history factor (normalize, assuming max 30 years)
-        history_factor = min(features['creditHistory'] / 30, 1.0)
-        score += history_factor * 70
-        
-        # Employment length factor (normalize, assuming max 40 years)
-        emp_factor = min(features['employmentLength'] / 40, 1.0)
-        score += emp_factor * 50
+        score += min(features['recharge_freq_per_month'] / 8, 1.0) * 35
+        score += min(features['avg_recharge_value'] / 1000, 1.0) * 35
+        score += (1 - min(features['recharge_gap_std'] / 30, 1.0)) * 25
+        score += features['bill_on_time_ratio'] * 95
+        score += (1 - min(features['avg_days_late'] / 30, 1.0)) * 50
+        score += 20 if features['autopay_enrolled'] else 0
+        score += (1 - min(features['monthly_spend_volatility'], 1.0)) * 30
+        score += (1 - features['emi_usage_rate']) * 30
+        score += min(features['phone_tenure_months'] / 60, 1.0) * 35
         
         return score
     
@@ -125,32 +120,10 @@ class CreditScorer:
         """Apply additional adjustments based on other factors"""
         score = base_score
         
-        # Number of credit lines (more is generally better, up to a point)
-        if features['numCreditLines'] >= 3:
-            score += min((features['numCreditLines'] - 3) * 5, 30)
-        
-        # Home ownership bonus
-        if features['homeOwnership'] == 'OWN':
-            score += 20
-        elif features['homeOwnership'] == 'MORTGAGE':
-            score += 10
-        
-        # Age factor (older is generally more stable)
-        if features['age'] >= 40:
-            score += 15
-        elif features['age'] >= 30:
-            score += 10
-        
-        # High debt penalty
-        if features['totalDebt'] > features['income'] * 0.5:
-            score -= 30
-        
-        # Loan amount vs income ratio
-        loan_to_income = features['loanAmount'] / features['income']
-        if loan_to_income > 0.5:
-            score -= 20
-        elif loan_to_income > 0.3:
-            score -= 10
+        if features['order_freq_trend'] > 0:
+            score += min(features['order_freq_trend'] * 25, 20)
+        else:
+            score += max(features['order_freq_trend'] * 25, -20)
         
         return score
     
@@ -175,11 +148,11 @@ class CreditScorer:
         base_confidence = 0.85
         
         # Higher confidence for more stable profiles
-        if features['creditHistory'] > 5:
+        if features['phone_tenure_months'] >= 24:
             base_confidence += 0.05
-        if features['employmentLength'] > 3:
+        if features['bill_on_time_ratio'] >= 0.9:
             base_confidence += 0.05
-        if features['debtToIncome'] < 0.3:
+        if features['avg_days_late'] <= 2:
             base_confidence += 0.03
         
         return min(base_confidence, 0.98)
@@ -194,20 +167,22 @@ class CreditScorer:
         
         # Distribute contributions based on feature weights
         for feature, weight in self.feature_weights.items():
-            if feature in features and not isinstance(features[feature], str):
+            if feature in features:
                 # Normalize feature value
                 feature_value = features[feature]
                 
-                if feature == 'income':
-                    normalized = min(feature_value / 100000, 1.0)
-                elif feature == 'debtToIncome':
+                if feature == 'autopay_enrolled':
+                    normalized = float(feature_value)
+                elif feature in ('recharge_freq_per_month', 'phone_tenure_months'):
+                    normalized = min(feature_value / (8 if feature == 'recharge_freq_per_month' else 60), 1.0)
+                elif feature == 'avg_recharge_value':
+                    normalized = min(feature_value / 1000, 1.0)
+                elif feature in ('recharge_gap_std', 'avg_days_late'):
+                    normalized = 1 - min(feature_value / (30 if feature == 'recharge_gap_std' else 30), 1.0)
+                elif feature in ('bill_on_time_ratio', 'emi_usage_rate', 'monthly_spend_volatility'):
                     normalized = feature_value
-                elif feature == 'creditHistory':
-                    normalized = min(feature_value / 20, 1.0)
-                elif feature == 'employmentLength':
-                    normalized = min(feature_value / 30, 1.0)
-                elif feature == 'totalDebt':
-                    normalized = min(feature_value / 50000, 1.0)
+                elif feature == 'order_freq_trend':
+                    normalized = min(abs(feature_value), 1.0)
                 else:
                     normalized = 0.5
                 
@@ -229,16 +204,16 @@ class CreditScorer:
         # Format top 5 factors
         top_factors = []
         factor_names = {
-            'income': 'Annual Income',
-            'debtToIncome': 'Debt-to-Income Ratio',
-            'creditHistory': 'Credit History Length',
-            'employmentLength': 'Employment Length',
-            'numCreditLines': 'Number of Credit Lines',
-            'numOpenAccounts': 'Open Accounts',
-            'totalDebt': 'Total Debt',
-            'loanAmount': 'Loan Amount',
-            'age': 'Age',
-            'loanTerm': 'Loan Term'
+            'recharge_freq_per_month': 'Recharge Frequency per Month',
+            'avg_recharge_value': 'Average Recharge Value',
+            'recharge_gap_std': 'Recharge Gap Standard Deviation',
+            'bill_on_time_ratio': 'Bill On-Time Ratio',
+            'avg_days_late': 'Average Days Late',
+            'autopay_enrolled': 'Autopay Enrolled',
+            'monthly_spend_volatility': 'Monthly Spend Volatility',
+            'emi_usage_rate': 'EMI Usage Rate',
+            'order_freq_trend': 'Order Frequency Trend',
+            'phone_tenure_months': 'Phone Tenure Months',
         }
         
         for factor, value in sorted_factors[:5]:

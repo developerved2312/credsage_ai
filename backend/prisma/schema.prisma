@@ -116,18 +116,16 @@ model CreditScore {
   scoreCategory   String   @db.VarChar(50) // Excellent, Good, Fair, Poor
   
   // Input Features
-  age             Int?     @db.Integer
-  income          Decimal? @db.Decimal(12, 2)
-  employmentLength Int?    @db.Integer
-  loanAmount      Decimal? @db.Decimal(12, 2)
-  loanTerm        Int?     @db.Integer
-  homeOwnership   String?  @db.VarChar(50)
-  loanPurpose     String?  @db.VarChar(100)
-  debtToIncome    Decimal? @db.Decimal(5, 4)
-  creditHistory   Int?     @db.Integer
-  numCreditLines  Int?     @db.Integer
-  numOpenAccounts Int?     @db.Integer
-  totalDebt       Decimal? @db.Decimal(12, 2)
+  rechargeFreqPerMonth     Decimal? @db.Decimal(8, 2) @map("recharge_freq_per_month")
+  avgRechargeValue         Decimal? @db.Decimal(12, 2) @map("avg_recharge_value")
+  rechargeGapStd           Decimal? @db.Decimal(8, 2) @map("recharge_gap_std")
+  billOnTimeRatio          Decimal? @db.Decimal(5, 4) @map("bill_on_time_ratio")
+  avgDaysLate              Decimal? @db.Decimal(8, 2) @map("avg_days_late")
+  autopayEnrolled          Boolean? @map("autopay_enrolled")
+  monthlySpendVolatility   Decimal? @db.Decimal(8, 4) @map("monthly_spend_volatility")
+  emiUsageRate             Decimal? @db.Decimal(5, 4) @map("emi_usage_rate")
+  orderFreqTrend           Decimal? @db.Decimal(8, 4) @map("order_freq_trend")
+  phoneTenureMonths        Int?     @db.Integer @map("phone_tenure_months")
   
   // ML Model Details
   modelVersion    String   @db.VarChar(50)

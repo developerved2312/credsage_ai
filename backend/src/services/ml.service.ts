@@ -8,18 +8,9 @@ const logger = new Logger('MLService');
 
 // Zod validation schema for ML service input
 const MLCreditScoreInputSchema = z.object({
-  age: z.number(),
-  income: z.number(),
-  employmentLength: z.number(),
-  loanAmount: z.number(),
-  loanTerm: z.number(),
-  homeOwnership: z.string(),
-  loanPurpose: z.string(),
-  debtToIncome: z.number(),
-  creditHistory: z.number(),
-  numCreditLines: z.number(),
-  numOpenAccounts: z.number(),
-  totalDebt: z.number(),
+  recharge_freq_per_month: z.number(), avg_recharge_value: z.number(), recharge_gap_std: z.number(),
+  bill_on_time_ratio: z.number(), avg_days_late: z.number(), autopay_enrolled: z.boolean(),
+  monthly_spend_volatility: z.number(), emi_usage_rate: z.number(), order_freq_trend: z.number(), phone_tenure_months: z.number(),
 });
 
 export type CreditScoreInput = z.infer<typeof MLCreditScoreInputSchema>;
