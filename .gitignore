@@ -47,9 +47,6 @@ coverage/
 .hypothesis/
 .pytest_cache/
 
-# Prisma
-backend/prisma/migrations/
-
 # ML Models
 ml-service/models/*.pkl
 ml-service/models/*.joblib
