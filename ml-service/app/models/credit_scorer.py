@@ -3,6 +3,10 @@ import pandas as pd
 from typing import Dict, List, Any
 import logging
 import os
+import json
+from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
+import shap
 
 logger = logging.getLogger(__name__)
 
@@ -10,217 +14,180 @@ class CreditScorer:
     """
     Credit Score Prediction Model
     
-    This is a mock implementation that uses rule-based scoring.
-    In production, this would load trained CatBoost/XGBoost models
-    and use SHAP for explanations.
+    Loads trained CatBoost and XGBoost alt-data models,
+    performs real-time feature engineering, and uses SHAP
+    to return top-3 interpretability factors.
     """
     
     def __init__(self):
         self.model_loaded = False
-        self.feature_names = [
-            'recharge_freq_per_month', 'avg_recharge_value', 'recharge_gap_std',
-            'bill_on_time_ratio', 'avg_days_late', 'autopay_enrolled',
-            'monthly_spend_volatility', 'emi_usage_rate', 'order_freq_trend',
-            'phone_tenure_months'
-        ]
-        self.categorical_features = ['autopay_enrolled']
         
-        # Feature weights for rule-based scoring
-        self.feature_weights = {
-            'recharge_freq_per_month': 0.10,
-            'avg_recharge_value': 0.12,
-            'recharge_gap_std': -0.08,
-            'bill_on_time_ratio': 0.25,
-            'avg_days_late': -0.18,
-            'autopay_enrolled': 0.08,
-            'monthly_spend_volatility': -0.08,
-            'emi_usage_rate': -0.10,
-            'order_freq_trend': 0.05,
-            'phone_tenure_months': 0.10,
-        }
+        # Paths to models
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.models_dir = os.path.join(base_dir, "models")
         
-        logger.info("CreditScorer initialized (mock mode)")
-        self.model_loaded = True
-    
+        self.catboost_path = os.path.join(self.models_dir, "catboost_altdata.cbm")
+        self.xgboost_path = os.path.join(self.models_dir, "xgboost_altdata.json")
+        self.metadata_path = os.path.join(self.models_dir, "model_metadata_altdata.json")
+        
+        try:
+            # Load Metadata
+            with open(self.metadata_path, "r") as f:
+                self.metadata = json.load(f)
+                
+            self.ensemble_weights = self.metadata["ensemble_weights"]
+            self.ordered_features = self.metadata["feature_names"]
+            self.raw_features = self.metadata["raw_features"]
+            
+            # Load CatBoost
+            self.cb_model = CatBoostRegressor()
+            self.cb_model.load_model(self.catboost_path)
+            
+            # Load XGBoost
+            self.xgb_model = XGBRegressor()
+            self.xgb_model.load_model(self.xgboost_path)
+            
+            # Initialize SHAP explainer (using CatBoost for speed)
+            self.explainer = shap.TreeExplainer(self.cb_model)
+            
+            logger.info("Alt-Data CreditScorer models loaded successfully")
+            self.model_loaded = True
+            
+        except Exception as e:
+            logger.error(f"Failed to load models: {str(e)}")
+            self.model_loaded = False
+
     def is_loaded(self) -> bool:
         """Check if model is loaded"""
         return self.model_loaded
     
     def get_feature_names(self) -> List[str]:
-        """Get list of feature names"""
-        return self.feature_names
-    
-    def predict(self, features: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Predict credit score
+        """Get list of raw feature names expected by the API"""
+        return self.raw_features if self.model_loaded else []
         
-        Args:
-            features: Dictionary of input features
+    def _preprocess_features(self, raw_features: Dict[str, Any]) -> Dict[str, float]:
+        """
+        Engineers the 6 alt-data features from the 10 raw inputs.
+        Formulas derived from train_alt_model.ipynb
+        """
+        f = dict(raw_features) # copy
+        
+        # Means and maxes extracted from training distribution
+        avg_days_late_mean = 2.0
+        recharge_gap_std_max = 30.0
+        spend_vol_max = 5000.0
+        phone_tenure_max = 120.0
+        
+        # 1. Bill regularity index
+        f['bill_regularity_index'] = 1.0 - (f['avg_days_late'] / avg_days_late_mean)
+        
+        # 2. Recharge consistency
+        f['recharge_consistency'] = 1.0 - (f['recharge_gap_std'] / recharge_gap_std_max)
+        
+        # 3. Spend stability
+        f['spend_stability'] = 1.0 - (f['monthly_spend_volatility'] / spend_vol_max)
+        
+        # 4. Recharge intensity
+        f['recharge_intensity'] = f['avg_recharge_value'] / (f['recharge_freq_per_month'] + 1.0)
+        
+        # 5. Payment discipline
+        normalized_days_late = 1.0 - (min(f['avg_days_late'], 30.0) / 30.0)
+        f['payment_discipline'] = (
+            f['bill_on_time_ratio'] * 0.5 
+            + normalized_days_late * 0.3 
+            + float(f['autopay_enrolled']) * 0.2
+        )
+        
+        # 6. Digital stability
+        f['digital_stability'] = (
+            (min(f['phone_tenure_months'], phone_tenure_max) / phone_tenure_max) * 0.6 
+            + f['recharge_consistency'] * 0.4
+        )
+        
+        return f
+
+    def predict(self, raw_features: Dict[str, Any]) -> Dict[str, Any]:
+        """Predict credit score and generate explanations"""
+        if not self.is_loaded():
+            raise RuntimeError("Models are not loaded.")
             
-        Returns:
-            Dictionary with score, category, confidence, and SHAP values
-        """
-        # Validate features
-        self._validate_features(features)
+        # 1. Feature Engineering
+        full_features = self._preprocess_features(raw_features)
         
-        # Calculate base score using rule-based approach
-        base_score = self._calculate_base_score(features)
+        # 2. Format into DataFrame with correct column order
+        input_df = pd.DataFrame([full_features])[self.ordered_features]
         
-        # Apply adjustments
-        score = self._apply_adjustments(base_score, features)
+        # 3. Predict Ensemble
+        cb_pred = self.cb_model.predict(input_df)[0]
+        xgb_pred = self.xgb_model.predict(input_df)[0]
         
-        # Ensure score is in valid range (300-850)
-        score = int(np.clip(score, 300, 850))
+        score = (self.ensemble_weights["catboost"] * cb_pred) + (self.ensemble_weights["xgboost"] * xgb_pred)
+        score = int(np.clip(score, 300, 900))
         
-        # Determine score category
-        category = self._get_score_category(score)
-        
-        # Calculate confidence (mock implementation)
-        confidence = self._calculate_confidence(features, score)
-        
-        # Generate SHAP-like values (feature importance)
-        shap_values = self._generate_shap_values(features, score)
-        
-        # Get top factors
+        # 4. Score Category (High/Medium/Low as per ps.txt risk buckets)
+        if score >= 720:
+            category = "Low Risk"
+        elif score >= 580:
+            category = "Medium Risk"
+        else:
+            category = "High Risk"
+            
+        # 5. SHAP Explanations
+        shap_values = self.explainer.shap_values(input_df)[0]
         top_factors = self._get_top_factors(shap_values)
+        
+        # Format SHAP values for full dictionary response if needed
+        shap_dict = {feat: round(float(val), 4) for feat, val in zip(self.ordered_features, shap_values)}
+        
+        # Confidence calculation based on variance between the two models
+        variance = abs(cb_pred - xgb_pred)
+        confidence = max(0.5, 1.0 - (variance / 100.0))
         
         return {
             'score': score,
             'scoreCategory': category,
             'confidence': round(confidence, 4),
-            'shapValues': shap_values,
+            'shapValues': shap_dict,
             'topFactors': top_factors,
-            'modelVersion': '1.0.0'
+            'modelVersion': self.metadata.get("model_version", "1.0.0")
         }
-    
-    def _validate_features(self, features: Dict[str, Any]) -> None:
-        """Validate input features"""
-        for feature in self.feature_names:
-            if feature not in features:
-                raise ValueError(f"Missing required feature: {feature}")
-    
-    def _calculate_base_score(self, features: Dict[str, Any]) -> float:
-        """Calculate base credit score"""
-        # Start with average score
-        score = 650.0
         
-        score += min(features['recharge_freq_per_month'] / 8, 1.0) * 35
-        score += min(features['avg_recharge_value'] / 1000, 1.0) * 35
-        score += (1 - min(features['recharge_gap_std'] / 30, 1.0)) * 25
-        score += features['bill_on_time_ratio'] * 95
-        score += (1 - min(features['avg_days_late'] / 30, 1.0)) * 50
-        score += 20 if features['autopay_enrolled'] else 0
-        score += (1 - min(features['monthly_spend_volatility'], 1.0)) * 30
-        score += (1 - features['emi_usage_rate']) * 30
-        score += min(features['phone_tenure_months'] / 60, 1.0) * 35
+    def _get_top_factors(self, shap_values: np.ndarray) -> List[Dict[str, Any]]:
+        """Extract top 3 contributing factors via SHAP"""
+        abs_shap = np.abs(shap_values)
+        top3_indices = np.argsort(abs_shap)[-3:][::-1]
         
-        return score
-    
-    def _apply_adjustments(self, base_score: float, features: Dict[str, Any]) -> float:
-        """Apply additional adjustments based on other factors"""
-        score = base_score
-        
-        if features['order_freq_trend'] > 0:
-            score += min(features['order_freq_trend'] * 25, 20)
-        else:
-            score += max(features['order_freq_trend'] * 25, -20)
-        
-        return score
-    
-    def _get_score_category(self, score: int) -> str:
-        """Determine credit score category"""
-        if score >= 800:
-            return "Excellent"
-        elif score >= 740:
-            return "Very Good"
-        elif score >= 670:
-            return "Good"
-        elif score >= 580:
-            return "Fair"
-        else:
-            return "Poor"
-    
-    def _calculate_confidence(self, features: Dict[str, Any], score: int) -> float:
-        """Calculate prediction confidence"""
-        # Mock confidence calculation
-        # In real implementation, this would come from model uncertainty
-        
-        base_confidence = 0.85
-        
-        # Higher confidence for more stable profiles
-        if features['phone_tenure_months'] >= 24:
-            base_confidence += 0.05
-        if features['bill_on_time_ratio'] >= 0.9:
-            base_confidence += 0.05
-        if features['avg_days_late'] <= 2:
-            base_confidence += 0.03
-        
-        return min(base_confidence, 0.98)
-    
-    def _generate_shap_values(self, features: Dict[str, Any], score: int) -> Dict[str, float]:
-        """Generate SHAP-like feature importance values"""
-        shap_values = {}
-        
-        # Calculate approximate contributions (mock SHAP values)
-        avg_score = 650
-        total_contribution = score - avg_score
-        
-        # Distribute contributions based on feature weights
-        for feature, weight in self.feature_weights.items():
-            if feature in features:
-                # Normalize feature value
-                feature_value = features[feature]
-                
-                if feature == 'autopay_enrolled':
-                    normalized = float(feature_value)
-                elif feature in ('recharge_freq_per_month', 'phone_tenure_months'):
-                    normalized = min(feature_value / (8 if feature == 'recharge_freq_per_month' else 60), 1.0)
-                elif feature == 'avg_recharge_value':
-                    normalized = min(feature_value / 1000, 1.0)
-                elif feature in ('recharge_gap_std', 'avg_days_late'):
-                    normalized = 1 - min(feature_value / (30 if feature == 'recharge_gap_std' else 30), 1.0)
-                elif feature in ('bill_on_time_ratio', 'emi_usage_rate', 'monthly_spend_volatility'):
-                    normalized = feature_value
-                elif feature == 'order_freq_trend':
-                    normalized = min(abs(feature_value), 1.0)
-                else:
-                    normalized = 0.5
-                
-                # Calculate SHAP value
-                shap_value = weight * normalized * total_contribution
-                shap_values[feature] = round(shap_value, 4)
-        
-        return shap_values
-    
-    def _get_top_factors(self, shap_values: Dict[str, float]) -> List[Dict[str, Any]]:
-        """Get top contributing factors"""
-        # Sort by absolute value
-        sorted_factors = sorted(
-            shap_values.items(),
-            key=lambda x: abs(x[1]),
-            reverse=True
-        )
-        
-        # Format top 5 factors
-        top_factors = []
-        factor_names = {
-            'recharge_freq_per_month': 'Recharge Frequency per Month',
+        # User-friendly mapping for frontend display
+        friendly_names = {
+            'recharge_freq_per_month': 'Mobile Recharge Frequency',
             'avg_recharge_value': 'Average Recharge Value',
-            'recharge_gap_std': 'Recharge Gap Standard Deviation',
-            'bill_on_time_ratio': 'Bill On-Time Ratio',
-            'avg_days_late': 'Average Days Late',
-            'autopay_enrolled': 'Autopay Enrolled',
-            'monthly_spend_volatility': 'Monthly Spend Volatility',
-            'emi_usage_rate': 'EMI Usage Rate',
-            'order_freq_trend': 'Order Frequency Trend',
-            'phone_tenure_months': 'Phone Tenure Months',
+            'recharge_gap_std': 'Consistency of Mobile Recharges',
+            'bill_on_time_ratio': 'Utility Bills Paid On Time',
+            'avg_days_late': 'Days Late on Utility Bills',
+            'autopay_enrolled': 'Autopay Enrollment Status',
+            'monthly_spend_volatility': 'E-commerce Spend Volatility',
+            'emi_usage_rate': 'Usage of EMIs (Buy Now Pay Later)',
+            'order_freq_trend': 'E-commerce Order Trend',
+            'phone_tenure_months': 'Mobile Phone Tenure',
+            'bill_regularity_index': 'Overall Bill Regularity',
+            'recharge_consistency': 'Recharge Consistency Index',
+            'spend_stability': 'Overall Spend Stability',
+            'recharge_intensity': 'Recharge Spend Intensity',
+            'payment_discipline': 'Payment Discipline Score',
+            'digital_stability': 'Digital Footprint Stability'
         }
         
-        for factor, value in sorted_factors[:5]:
+        top_factors = []
+        for idx in top3_indices:
+            raw_feat = self.ordered_features[idx]
+            val = float(shap_values[idx])
+            
+            impact = "positive" if val > 0 else "negative"
+            
             top_factors.append({
-                'factor': factor_names.get(factor, factor),
-                'impact': 'positive' if value > 0 else 'negative',
-                'value': round(value, 4)
+                "factor": friendly_names.get(raw_feat, raw_feat),
+                "impact": impact,
+                "value": round(val, 4)
             })
-        
+            
         return top_factors
