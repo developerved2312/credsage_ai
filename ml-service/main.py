@@ -2,9 +2,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 import logging
 from datetime import datetime
+import os
+import json
+from groq import AsyncGroq
 
 from app.models.credit_scorer import CreditScorer
 from app.config import settings
@@ -71,8 +74,10 @@ class CreditScoreResponse(BaseModel):
     scoreCategory: str
     confidence: float
     shapValues: Dict[str, float]
-    topFactors: List[Dict[str, any]]
+    topFactors: List[Dict[str, Any]]
     modelVersion: str
+    textExplanation: Optional[str] = None
+    improvementRecommendations: Optional[List[str]] = None
 
 class HealthResponse(BaseModel):
     status: str
@@ -100,6 +105,62 @@ async def health_check():
         model_loaded=credit_scorer.is_loaded()
     )
 
+# Initialize Groq client
+try:
+    groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY", ""))
+except Exception as e:
+    logger.warning(f"Groq API client initialization failed: {e}")
+    groq_client = None
+
+async def generate_insights(score: int, category: str, top_factors: List[Dict[str, Any]]) -> Dict[str, Any]:
+    if not groq_client or not os.environ.get("GROQ_API_KEY"):
+        return {
+            "textExplanation": "Groq API key is missing. Add it to .env to enable AI explanations.",
+            "improvementRecommendations": ["(LLM Integration disabled)"]
+        }
+    
+    prompt = f"""
+    You are a helpful AI financial advisor for a micro-investment platform in India. A user just received an alternative credit score of {score} ({category}). 
+    Based on our machine learning model, the top 3 factors driving this score were:
+    1. {top_factors[0]['factor']} (Impact: {top_factors[0]['impact']})
+    2. {top_factors[1]['factor']} (Impact: {top_factors[1]['impact']})
+    3. {top_factors[2]['factor']} (Impact: {top_factors[2]['impact']})
+    
+    Task:
+    1. Write a short, friendly, 2-to-3 sentence explanation addressing the user directly ("You"). Explain why they got this score.
+    2. Provide 1 to 3 specific, actionable recommendations to improve their score (focus on the negative factors if there are any).
+    
+    You MUST return the output strictly in this JSON format:
+    {{
+        "textExplanation": "...",
+        "improvementRecommendations": ["...", "..."]
+    }}
+    """
+    
+    try:
+        chat_completion = await groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a helpful AI financial advisor. You MUST respond with valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama3-8b-8192",
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            max_tokens=300
+        )
+        
+        response_json = json.loads(chat_completion.choices[0].message.content)
+        return {
+            "textExplanation": response_json.get("textExplanation", ""),
+            "improvementRecommendations": response_json.get("improvementRecommendations", [])
+        }
+    except Exception as e:
+        logger.error(f"Groq API call failed: {str(e)}")
+        return {
+            "textExplanation": "Failed to generate AI explanation.",
+            "improvementRecommendations": []
+        }
+
 @app.post("/api/v1/credit/predict", response_model=CreditScoreResponse)
 async def predict_credit_score(request: CreditScoreRequest):
     """
@@ -115,6 +176,11 @@ async def predict_credit_score(request: CreditScoreRequest):
         
         # Make prediction
         result = credit_scorer.predict(features)
+        
+        # Generate LLM Insights
+        insights = await generate_insights(result['score'], result['scoreCategory'], result['topFactors'])
+        result['textExplanation'] = insights['textExplanation']
+        result['improvementRecommendations'] = insights['improvementRecommendations']
         
         logger.info(f"Prediction completed: score={result['score']}")
         
