@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signIn, authClient } from '../lib/auth';
+import { signIn, signOut } from '../lib/auth.client';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -11,6 +11,16 @@ const Login: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      window.location.reload();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -61,9 +71,9 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await authClient.signIn.social({
+      await signIn.social({
         provider: 'google',
-        callbackURL: '/dashboard',
+        callbackURL: `${window.location.origin}/dashboard`,
       });
     } catch (err: unknown) {
       console.error('Google login error:', err);
@@ -73,16 +83,25 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-sm">
+    <>
       {/* Header */}
-      <div className="mb-7 text-center">
-        <Link to="/" className="text-xl font-semibold text-primary tracking-tight block mb-5">
-          CredSage AI
-        </Link>
-        <h1 className="text-2xl font-semibold text-text-primary">Sign in to your account</h1>
+      <div className="mb-8 text-center">
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/" className="text-2xl font-bold text-primary tracking-tight">
+            CredSage AI
+          </Link>
+          <button 
+            onClick={handleLogout}
+            className="text-sm text-text-secondary hover:text-text-primary"
+          >
+            Logout
+          </button>
+        </div>
+        <h1 className="text-3xl font-bold text-text-primary">Sign in to your account</h1>
+        <p className="text-sm text-text-secondary mt-2">Welcome back! Please enter your details.</p>
       </div>
 
-      <div className="card p-7 shadow-card">
+      <div className="card p-8 shadow-card">
         {/* Error */}
         {error && (
           <div className="mb-5 flex items-start gap-2.5 p-3 rounded border border-red-200 bg-red-50">
@@ -187,7 +206,7 @@ const Login: React.FC = () => {
           </Link>
         </p>
       </div>
-    </div>
+    </>
   );
 };
 

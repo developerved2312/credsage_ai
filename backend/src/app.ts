@@ -30,7 +30,7 @@ export function createApp(): Application {
   // CORS configuration
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin: env.CORS_ORIGIN.split(','),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
@@ -64,6 +64,16 @@ export function createApp(): Application {
 
   // Health check endpoint
   app.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: env.NODE_ENV,
+      version: '1.0.0',
+    });
+  });
+
+  // API health check endpoint  
+  app.get('/api/health', (req, res) => {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),

@@ -5,14 +5,12 @@
   "private": true,
   "workspaces": [
     "backend",
-    "frontend",
-    "ml-service"
+    "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\" \"npm run dev -w ml-service\"",
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "dev:backend": "npm run dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
-    "dev:ml": "npm run dev -w ml-service",
     "build": "npm run build -w backend && npm run build -w frontend",
     "prisma:generate": "npm run prisma:generate -w backend",
     "prisma:migrate": "npm run prisma:migrate -w backend",

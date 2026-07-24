@@ -40,7 +40,7 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   
   // Trust host (important for production)
-  trustedOrigins: [env.CORS_ORIGIN],
+  trustedOrigins: env.CORS_ORIGIN.split(','),
 
   // Plugins
   plugins: [

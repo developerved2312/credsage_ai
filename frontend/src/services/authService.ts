@@ -28,7 +28,7 @@ export const authService = {
   loginWithGoogle: async () => {
     return signIn.social({
       provider: 'google',
-      callbackURL: '/dashboard',
+      callbackURL: `${window.location.origin}/dashboard`,
     });
   },
 
