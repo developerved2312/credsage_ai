@@ -1,85 +1,93 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useSession } from './lib/auth';
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import Dashboard from './pages/Dashboard';
-import Demo from './demo';
-import { Loader2 } from 'lucide-react';
+import MainLayout from '@components/layouts/MainLayout';
+import AuthLayout from '@components/layouts/AuthLayout';
+import LoadingSpinner from '@components/ui/LoadingSpinner';
 
-// Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: session, isPending } = useSession();
+// Eagerly loaded (small, fast)
+import LandingPage from '@pages/LandingPage';
+import Login from '@pages/Login';
+import SignUp from '@pages/SignUp';
 
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+// Lazy loaded (code-split protected pages)
+const Dashboard = lazy(() => import('@pages/Dashboard'));
+const CreditPage = lazy(() => import('@pages/CreditPage'));
+const RiskProfilePage = lazy(() => import('@pages/RiskProfilePage'));
+const RecommendationsPage = lazy(() => import('@pages/RecommendationsPage'));
+const PortfolioPage = lazy(() => import('@pages/PortfolioPage'));
+const ChatbotPage = lazy(() => import('@pages/ChatbotPage'));
 
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Public Route Component (redirect to dashboard if already logged in)
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: session, isPending } = useSession();
-
-  if (isPending) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
-  if (session) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[300px]">
+    <LoadingSpinner size={24} />
+  </div>
+);
 
 const App: React.FC = () => {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <SignUp />
-          </PublicRoute>
-        }
-      />
+      {/* Landing — public, always visible */}
+      <Route path="/" element={<LandingPage />} />
 
-      {/* Protected Routes */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      {/* Auth routes — redirect to dashboard if logged in */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+      </Route>
 
-      <Route path="/demo" element={<Demo />} />
+      {/* Protected routes — redirect to login if not authenticated */}
+      <Route element={<MainLayout />}>
+        <Route
+          path="/dashboard"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <Dashboard />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/credit"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <CreditPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/investment/risk-profile"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <RiskProfilePage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/investment/recommendations"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <RecommendationsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/investment/portfolio"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <PortfolioPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/chatbot"
+          element={
+            <Suspense fallback={<PageLoader />}>
+              <ChatbotPage />
+            </Suspense>
+          }
+        />
+      </Route>
 
-      {/* Default Route */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

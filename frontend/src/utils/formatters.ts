@@ -1,11 +1,20 @@
 import { format, formatDistanceToNow } from 'date-fns';
 
-// Format currency
+// Format currency (USD)
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Format Indian Rupees
+export const formatINR = (amount: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
     maximumFractionDigits: 0,
   }).format(amount);
 };
@@ -35,26 +44,26 @@ export const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('en-US').format(num);
 };
 
-// Get score category color
+// Get score category Tailwind classes (aligned with design system tokens)
 export const getScoreCategoryColor = (category: string): string => {
-  const colors: Record<string, string> = {
-    Excellent: 'text-green-600 bg-green-100',
-    'Very Good': 'text-blue-600 bg-blue-100',
-    Good: 'text-cyan-600 bg-cyan-100',
-    Fair: 'text-yellow-600 bg-yellow-100',
-    Poor: 'text-red-600 bg-red-100',
+  const classes: Record<string, string> = {
+    Excellent: 'text-risk-low bg-green-50',
+    'Very Good': 'text-risk-low bg-green-50',
+    Good: 'text-risk-low bg-green-50',
+    Fair: 'text-risk-medium bg-amber-50',
+    Poor: 'text-risk-high bg-red-50',
   };
-  return colors[category] || 'text-gray-600 bg-gray-100';
+  return classes[category] || 'text-text-secondary bg-gray-100';
 };
 
-// Get risk level color
+// Get risk level Tailwind classes (aligned with design system tokens)
 export const getRiskLevelColor = (riskLevel: string): string => {
-  const colors: Record<string, string> = {
-    low: 'text-green-600 bg-green-100',
-    medium: 'text-yellow-600 bg-yellow-100',
-    high: 'text-red-600 bg-red-100',
+  const classes: Record<string, string> = {
+    low: 'text-risk-low bg-green-50',
+    medium: 'text-risk-medium bg-amber-50',
+    high: 'text-risk-high bg-red-50',
   };
-  return colors[riskLevel.toLowerCase()] || 'text-gray-600 bg-gray-100';
+  return classes[riskLevel.toLowerCase()] || 'text-text-secondary bg-gray-100';
 };
 
 // Truncate text
