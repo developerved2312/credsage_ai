@@ -3,6 +3,7 @@ generator client {
   previewFeatures = ["typedSql", "relationJoins", "fullTextSearch", "views"]
   engineType = "library"
   binaryTargets = ["native", "darwin-arm64", "linux-musl"]
+  output = "./node_modules/.prisma/client"
 }
 
 datasource db {
