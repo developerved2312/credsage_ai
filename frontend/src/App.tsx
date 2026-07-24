@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from './lib/auth';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';

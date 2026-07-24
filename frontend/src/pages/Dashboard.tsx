@@ -224,7 +224,7 @@ const Dashboard: React.FC = () => {
                     </td>
                     <td className={`text-right text-xs tabular-nums ${p.profitLossPercent >= 0 ? 'text-risk-low' : 'text-risk-high'}`}>
                       {p.profitLossPercent >= 0 ? '+' : ''}
-                      {p.profitLossPercent.toFixed(1)}%
+                      {typeof p.profitLossPercent === 'number' ? p.profitLossPercent.toFixed(1) : Number(p.profitLossPercent || 0).toFixed(1)}%
                     </td>
                   </tr>
                 ))}

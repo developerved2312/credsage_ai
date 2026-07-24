@@ -9,7 +9,7 @@ const chatbotService = new ChatbotService();
 
 export class ChatbotController {
   sendMessage = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { conversationId, message, context } = req.body;
     
     logger.info(`Send message endpoint called for user: ${userId}`);
@@ -24,7 +24,7 @@ export class ChatbotController {
   });
 
   getConversations = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     logger.info(`Get conversations endpoint called for user: ${userId}`);
 
@@ -34,7 +34,7 @@ export class ChatbotController {
   });
 
   getConversationById = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     
     logger.info(`Get conversation by ID endpoint called: ${id}`);
@@ -45,7 +45,7 @@ export class ChatbotController {
   });
 
   getMessages = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { conversationId } = req.params;
     const { limit, offset } = req.query as { limit?: number; offset?: number };
     
@@ -62,7 +62,7 @@ export class ChatbotController {
   });
 
   updateConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     const { title } = req.body;
     
@@ -74,7 +74,7 @@ export class ChatbotController {
   });
 
   deleteConversation = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     
     logger.info(`Delete conversation endpoint called: ${id}`);
@@ -85,7 +85,7 @@ export class ChatbotController {
   });
 
   clearHistory = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     
     logger.info(`Clear history endpoint called for user: ${userId}`);
 

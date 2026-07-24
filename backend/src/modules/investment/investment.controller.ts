@@ -10,7 +10,7 @@ const investmentService = new InvestmentService();
 export class InvestmentController {
   // Portfolio controllers
   createPortfolio = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     logger.info(`Create portfolio endpoint called for user: ${userId}`);
 
     const portfolio = await investmentService.createPortfolio(userId, req.body);
@@ -19,7 +19,7 @@ export class InvestmentController {
   });
 
   getPortfolios = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     logger.info(`Get portfolios endpoint called for user: ${userId}`);
 
     const portfolios = await investmentService.getPortfolios(userId);
@@ -28,7 +28,7 @@ export class InvestmentController {
   });
 
   getPortfolioById = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Get portfolio by ID endpoint called: ${id}`);
 
@@ -38,7 +38,7 @@ export class InvestmentController {
   });
 
   updatePortfolio = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Update portfolio endpoint called: ${id}`);
 
@@ -48,7 +48,7 @@ export class InvestmentController {
   });
 
   deletePortfolio = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Delete portfolio endpoint called: ${id}`);
 
@@ -58,7 +58,7 @@ export class InvestmentController {
   });
 
   getPortfolioStats = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Get portfolio stats endpoint called: ${id}`);
 
@@ -69,7 +69,7 @@ export class InvestmentController {
 
   // Investment controllers
   addInvestment = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     logger.info(`Add investment endpoint called for user: ${userId}`);
 
     const investment = await investmentService.addInvestment(userId, req.body);
@@ -78,7 +78,7 @@ export class InvestmentController {
   });
 
   getInvestments = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { portfolioId } = req.query;
     logger.info(`Get investments endpoint called for user: ${userId}`);
 
@@ -91,7 +91,7 @@ export class InvestmentController {
   });
 
   getInvestmentById = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Get investment by ID endpoint called: ${id}`);
 
@@ -101,7 +101,7 @@ export class InvestmentController {
   });
 
   updateInvestment = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Update investment endpoint called: ${id}`);
 
@@ -111,7 +111,7 @@ export class InvestmentController {
   });
 
   deleteInvestment = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { id } = req.params;
     logger.info(`Delete investment endpoint called: ${id}`);
 
@@ -122,7 +122,7 @@ export class InvestmentController {
 
   // Recommendation controllers
   getRecommendations = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     const { riskTolerance, investmentAmount, horizon } = req.query;
     logger.info(`Get recommendations endpoint called for user: ${userId}`);
 
@@ -136,7 +136,7 @@ export class InvestmentController {
   });
 
   getAnalytics = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user!.userId;
+    const userId = req.user!.id;
     logger.info(`Get analytics endpoint called for user: ${userId}`);
 
     const analytics = await investmentService.getInvestmentAnalytics(userId);
