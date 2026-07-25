@@ -158,7 +158,7 @@ const Dashboard: React.FC = () => {
           </Link>
 
           <Link
-            to="/investment/risk-profile"
+            to="/risk-profile"
             className="card flex items-start gap-3 hover:shadow-card-hover transition-shadow cursor-pointer group"
           >
             <div className="w-10 h-10 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center shrink-0">
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-text-primary">Top Performers</h2>
-            <Link to="/investment/portfolio" className="text-sm text-primary hover:underline font-medium">
+            <Link to="/portfolio" className="text-sm text-primary hover:underline font-medium">
               View portfolio →
             </Link>
           </div>
@@ -246,7 +246,7 @@ const Dashboard: React.FC = () => {
               <p className="text-xs text-text-secondary">Create a portfolio and start tracking holdings</p>
             </div>
           </div>
-          <Link to="/investment/portfolio" className="btn btn-secondary text-sm w-full sm:w-auto">
+          <Link to="/portfolio" className="btn btn-secondary text-sm w-full sm:w-auto">
             Create Portfolio
           </Link>
         </div>

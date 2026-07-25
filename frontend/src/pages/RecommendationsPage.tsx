@@ -113,7 +113,7 @@ const RecommendationsPage: React.FC = () => {
             Tailored to your risk profile and investment amount.
           </p>
         </div>
-        <Link to="/investment/risk-profile" className="btn btn-secondary text-xs shrink-0">
+        <Link to="/risk-profile" className="btn btn-secondary text-xs shrink-0">
           Re-take questionnaire
         </Link>
       </div>

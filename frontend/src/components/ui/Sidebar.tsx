@@ -14,9 +14,9 @@ import {
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/credit', label: 'Credit Score', icon: CreditCard },
-  { to: '/investment/risk-profile', label: 'Risk Profile', icon: Star },
-  { to: '/investment/recommendations', label: 'Recommendations', icon: LineChart },
-  { to: '/investment/portfolio', label: 'Portfolio', icon: Briefcase },
+  { to: '/risk-profile', label: 'Risk Profile', icon: Star },
+  { to: '/recommendations', label: 'Recommendations', icon: LineChart },
+  { to: '/portfolio', label: 'Portfolio', icon: Briefcase },
   { to: '/chatbot', label: 'AI Advisor', icon: MessageSquare },
 ];
 

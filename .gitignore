@@ -15,6 +15,11 @@ build/
 
 # Environment variables
 .env
+*.env
+**/.env
+backend/.env
+frontend/.env
+ml-service/.env
 .env.local
 .env.development.local
 .env.test.local

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { investmentService } from '@services/investmentService';
 
 interface Question {
   id: string;
@@ -117,6 +118,7 @@ const RiskProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const currentQuestion = QUESTIONS[currentIndex];
   const total = QUESTIONS.length;
@@ -128,10 +130,10 @@ const RiskProfilePage: React.FC = () => {
     setAnswers((prev) => ({ ...prev, [currentQuestion.id]: value }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!selected && selected !== 0) return;
     if (isLast) {
-      // Compute profile
+      setIsSaving(true);
       const horizonVal = answers['horizon'] ?? 2;
       const profile: RiskProfile = {
         riskTolerance: computeRiskTolerance(answers),
@@ -140,8 +142,28 @@ const RiskProfilePage: React.FC = () => {
         horizonYears:
           horizonVal === 1 ? 1 : horizonVal === 2 ? 2 : horizonVal === 3 ? 4 : 7,
       };
-      // Navigate to recommendations with profile state
-      navigate('/investment/recommendations', { state: { profile } });
+
+      try {
+        const portfolios = await investmentService.portfolio.getAll();
+        if (portfolios && portfolios.length > 0) {
+          await investmentService.portfolio.update(portfolios[0].id, {
+            riskTolerance: profile.riskTolerance,
+            investmentHorizon: profile.investmentHorizon,
+          });
+        } else {
+          await investmentService.portfolio.create({
+            name: 'Primary Portfolio',
+            description: 'Auto-created portfolio from risk profile assessment',
+            riskTolerance: profile.riskTolerance,
+            investmentHorizon: profile.investmentHorizon,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to sync risk profile to portfolio:', err);
+      } finally {
+        setIsSaving(false);
+        navigate('/recommendations', { state: { profile } });
+      }
     } else {
       setCurrentIndex((i) => i + 1);
     }
@@ -214,11 +236,25 @@ const RiskProfilePage: React.FC = () => {
         <button
           id="next-question-btn"
           onClick={handleNext}
-          disabled={selected === undefined}
+          disabled={selected === undefined || isSaving}
           className="btn btn-primary disabled:opacity-40"
         >
-          {isLast ? 'See Recommendations' : 'Next'}
-          <ChevronRight size={15} />
+          {isSaving ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              Saving Profile…
+            </>
+          ) : isLast ? (
+            <>
+              See Recommendations
+              <ChevronRight size={15} />
+            </>
+          ) : (
+            <>
+              Next
+              <ChevronRight size={15} />
+            </>
+          )}
         </button>
       </div>
     </div>
