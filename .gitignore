@@ -62,3 +62,16 @@ ml-service/models/*.h5
 .cache/
 .temp/
 *.tmp
+
+# Test artifacts generated during verification
+test-report*.md
+test_plan*.md
+test_plan_*.md
+
+# Cookie jars containing session secrets
+backend/cookies.txt
+backend/demo_cookies.txt
+
+# ML training logs / generated artifacts
+ml-service/catboost_info/
+ml-service/models/*.png

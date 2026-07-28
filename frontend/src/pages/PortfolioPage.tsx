@@ -9,12 +9,20 @@ import type { Portfolio, Investment } from '@appTypes/index';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Plus, Trash2, Pencil, X, ChevronDown, ChevronRight, Briefcase } from 'lucide-react';
 
-const formatINR = (n: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(n);
+const formatINR = (n: number | null | undefined) =>
+  n == null
+    ? '—'
+    : new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0,
+      }).format(n);
+
+const formatPercent = (n: number | null | undefined, digits = 1) =>
+  n == null ? '—' : `${n >= 0 ? '+' : ''}${n.toFixed(digits)}%`;
+
+const getColorClass = (n: number | null | undefined) =>
+  n == null ? '' : n >= 0 ? 'text-risk-low' : 'text-risk-high';
 
 const PIE_COLORS = ['#14532D', '#16A34A', '#4ADE80', '#BBF7D0', '#6B7280', '#D1D5DB'];
 
@@ -209,8 +217,8 @@ const PortfolioDetail: React.FC<{ portfolio: Portfolio; onClose: () => void }> =
           {[
             { label: 'Total Value', value: formatINR(stats.totalValue) },
             { label: 'Invested', value: formatINR(stats.investmentValue) },
-            { label: 'P&L', value: `${stats.totalProfitLoss >= 0 ? '+' : ''}${formatINR(stats.totalProfitLoss)}`, color: stats.totalProfitLoss >= 0 ? 'text-risk-low' : 'text-risk-high' },
-            { label: 'Return', value: `${stats.totalReturnPercent >= 0 ? '+' : ''}${stats.totalReturnPercent.toFixed(1)}%`, color: stats.totalReturnPercent >= 0 ? 'text-risk-low' : 'text-risk-high' },
+            { label: 'P&L', value: `${stats.totalProfitLoss == null ? '' : stats.totalProfitLoss >= 0 ? '+' : ''}${formatINR(stats.totalProfitLoss)}`, color: getColorClass(stats.totalProfitLoss) },
+            { label: 'Return', value: formatPercent(stats.totalReturnPercent), color: getColorClass(stats.totalReturnPercent) },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-gray-50 rounded border border-border-color p-3">
               <p className="text-xs text-text-secondary">{label}</p>
@@ -418,7 +426,7 @@ const PortfolioPage: React.FC = () => {
                     </p>
                     {p.totalReturnPercent != null && (
                       <p className={`text-xs tabular-nums ${p.totalReturnPercent >= 0 ? 'text-risk-low' : 'text-risk-high'}`}>
-                        {p.totalReturnPercent >= 0 ? '+' : ''}{p.totalReturnPercent.toFixed(1)}%
+                        {p.totalReturnPercent >= 0 ? '+' : ''}{Number(p.totalReturnPercent).toFixed(1)}%
                       </p>
                     )}
                   </div>

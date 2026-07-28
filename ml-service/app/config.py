@@ -12,7 +12,10 @@ class Settings(BaseSettings):
     MODEL_PATH: str = "./models"
     MODEL_TYPE: Literal["catboost", "xgboost", "ensemble"] = "catboost"
     MODEL_VERSION: str = "1.0.0"
-    
+
+    # LLM Configuration
+    GROQ_API_KEY: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True

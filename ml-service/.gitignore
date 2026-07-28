@@ -38,6 +38,7 @@ models/*.pt
 data/
 *.csv
 *.json
+!package.json
 
 # Environment
 .env

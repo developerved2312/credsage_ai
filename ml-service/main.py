@@ -107,13 +107,13 @@ async def health_check():
 
 # Initialize Groq client
 try:
-    groq_client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY", ""))
+    groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY)
 except Exception as e:
     logger.warning(f"Groq API client initialization failed: {e}")
     groq_client = None
 
 async def generate_insights(score: int, category: str, top_factors: List[Dict[str, Any]]) -> Dict[str, Any]:
-    if not groq_client or not os.environ.get("GROQ_API_KEY"):
+    if not groq_client or not settings.GROQ_API_KEY:
         return {
             "textExplanation": "Groq API key is missing. Add it to .env to enable AI explanations.",
             "improvementRecommendations": ["(LLM Integration disabled)"]

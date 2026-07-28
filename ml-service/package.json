@@ -1,0 +1,21 @@
+{
+  "name": "ml-service",
+  "version": "1.0.0",
+  "description": "CredSage AI Python ML microservice (FastAPI + CatBoost + XGBoost)",
+  "private": true,
+  "scripts": {
+    "postinstall": "if [ ! -d venv ]; then python3 -m venv venv; fi && . venv/bin/activate && pip install -r requirements.txt",
+    "dev": ". venv/bin/activate && python main.py",
+    "start": ". venv/bin/activate && python main.py",
+    "train": ". venv/bin/activate && python generate_and_train.py",
+    "test": ". venv/bin/activate && python -m pytest"
+  },
+  "keywords": [
+    "machine-learning",
+    "credit-scoring",
+    "fastapi",
+    "python"
+  ],
+  "author": "",
+  "license": "MIT"
+}

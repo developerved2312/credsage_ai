@@ -80,14 +80,12 @@ const SignUp: React.FC = () => {
       });
 
       if (response?.error) {
-        setError(response.error.message || 'Google OAuth is not configured or failed. Please sign up with Email.');
+        setError('Google sign-up is currently unavailable. Please sign up with email.');
         setLoading(false);
       }
     } catch (err: unknown) {
       console.error('Google sign up error:', err);
-      setError(
-        'Google OAuth failed. Make sure valid GOOGLE_CLIENT_ID & SECRET are set in backend/.env and http://localhost:3000/api/auth/callback/google is added to your Google OAuth client redirect URIs.'
-      );
+      setError('Google sign-up is currently unavailable. Please sign up with email.');
       setLoading(false);
     }
   };

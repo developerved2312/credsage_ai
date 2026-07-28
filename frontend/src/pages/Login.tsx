@@ -67,14 +67,12 @@ const Login: React.FC = () => {
       });
 
       if (response?.error) {
-        setError(response.error.message || 'Google OAuth is not configured or failed. Please sign in with Email.');
+        setError('Google sign-in is currently unavailable. Please sign in with email.');
         setLoading(false);
       }
     } catch (err: unknown) {
       console.error('Google login error:', err);
-      setError(
-        'Google OAuth failed. Make sure valid GOOGLE_CLIENT_ID & SECRET are set in backend/.env and http://localhost:3000/api/auth/callback/google is added to your Google OAuth client redirect URIs.'
-      );
+      setError('Google sign-in is currently unavailable. Please sign in with email.');
       setLoading(false);
     }
   };

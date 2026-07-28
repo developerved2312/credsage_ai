@@ -76,10 +76,18 @@ const ConversationItem: React.FC<{
   onClick: () => void;
   onDelete: () => void;
 }> = ({ conversation, isActive, onClick, onDelete }) => (
-  <button
+  <div
+    role="button"
+    tabIndex={0}
     onClick={onClick}
+    onKeyDown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onClick();
+      }
+    }}
     className={clsx(
-      'w-full text-left px-3 py-2.5 rounded transition-colors group relative',
+      'w-full text-left px-3 py-2.5 rounded transition-colors group relative cursor-pointer',
       isActive
         ? 'bg-green-50 text-primary'
         : 'hover:bg-gray-100 text-text-secondary hover:text-text-primary'
@@ -101,7 +109,7 @@ const ConversationItem: React.FC<{
     >
       <Trash2 size={13} strokeWidth={1.75} />
     </button>
-  </button>
+  </div>
 );
 
 /* ——— Main chatbot page ——— */

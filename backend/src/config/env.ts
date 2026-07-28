@@ -40,7 +40,7 @@ try {
   if (error instanceof z.ZodError) {
     logger.error('Environment validation failed:', error);
     console.error('Missing or invalid environment variables:');
-    error.errors.forEach((err) => {
+    (error.issues || []).forEach((err) => {
       console.error(`  - ${err.path.join('.')}: ${err.message}`);
     });
     process.exit(1);

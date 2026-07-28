@@ -44,7 +44,7 @@ const RecommendationCard: React.FC<{ rec: InvestmentRecommendation }> = ({ rec }
       </div>
       <div className="text-right shrink-0">
         <p className="text-lg font-semibold text-primary tabular-nums">
-          {rec.recommendedAllocation}%
+          {(rec.recommendedAllocation * 100).toFixed(0)}%
         </p>
         <p className="text-xs text-text-secondary">allocation</p>
       </div>
