@@ -7,6 +7,7 @@ env/
 venv/
 ENV/
 .venv
+/.md
 
 # Build outputs
 dist/
